@@ -2,8 +2,9 @@
 
 import { KINDS } from "./facets.mjs";
 import { outsideSources } from "./elsewhere.mjs";
+import { createGenerationTools, PACK_BASE } from "./generation.mjs";
 
-export const VERSION = "0.2.0";
+export const VERSION = "0.3.0";
 export const USER_AGENT = `codepawl-asset-gate/${VERSION} (+https://github.com/codepawl/asset-gate)`;
 const TIER_ORDER = ["web", "ktx2", "mobile", "lod1", "lod2", "lod3", "engine", "collision"];
 const TIER_NOTES = {
@@ -16,6 +17,7 @@ const TIER_NOTES = {
   engine: "least compressed; for Blender, Godot, Unity and offline renders",
   collision: "convex hulls for physics, not for display",
 };
+const LICENCE_URL_MIT = "https://opensource.org/license/mit";
 const THREE_VERSION = "0.170.0";
 
 // glTF extensions a stock three.js GLTFLoader cannot open on its own, and the decoder each one needs.
@@ -163,7 +165,90 @@ function summarise(record, packBase) {
   return summary;
 }
 
-export function createTools({ index, gateBase = null, fetchImpl = fetch }) {
+// Fields every asset answer carries.
+function describeRecord(record) {
+  const answer = {
+    id: record.id,
+    title: record.title,
+    source: record.source,
+    kind: record.kind,
+    licence: record.licence,
+    licence_url: record.licence_url ?? null,
+    credit: record.credit ?? null,
+    credit_needed: !["CC0-1.0", "public-domain"].includes(record.licence),
+    authors: record.authors ?? null,
+    page: record.page ?? null,
+    size_m: record.size_m ?? null,
+    size_note: record.size_m
+      ? "bounding box x, y, z in metres (y up)"
+      : record.surface_m
+        ? `one texture repeat covers ${record.surface_m.join(" x ")} m`
+        : record.kind === "hdri"
+          ? null
+          : record.file_units ?? "size unknown: measure the bounding box after loading",
+    triangles: record.triangles ?? null,
+    notes: record.notes ?? null,
+  };
+  if (record.ai_generated) answer.ai_generated = true;
+  return answer;
+}
+
+// Adds the GLB tiers of a pack asset: each tier with the decoders it needs, the default pick and a load snippet.
+function addTiers(answer, record, { requirements, packBase, tierInput, gateBase }) {
+  const tiers = {};
+  const extraFiles = {};
+  for (const [name, path] of Object.entries(record.tiers)) {
+    const direct = packFileUrl(packBase, record.pack, path);
+    if (!path.endsWith(".glb")) {
+      extraFiles[name] = direct;
+      continue;
+    }
+    if (!TIER_ORDER.includes(name)) continue;
+    tiers[name] = {
+      url: gateBase ? `${gateBase}/f/${gatePath(record.id)}/${name}.glb` : direct,
+      needs: decodersFor(requirements[name]),
+      note: TIER_NOTES[name],
+    };
+  }
+  const available = Object.keys(tiers);
+  const preferred = tierInput && tiers[tierInput] ? tierInput : defaultTier(available, requirements);
+  answer.glb_url = tiers[preferred].url;
+  answer.tier = preferred;
+  answer.needs = tiers[preferred].needs;
+  answer.load_three = threeLoadSnippet(answer.glb_url, answer.needs);
+  answer.tiers = Object.fromEntries(TIER_ORDER.filter((name) => tiers[name]).map((name) => [name, tiers[name]]));
+  if (Object.keys(extraFiles).length) answer.extra_files = extraFiles;
+  if (record.thumbnail) answer.thumbnail = packFileUrl(packBase, record.pack, record.thumbnail);
+  return answer;
+}
+
+// A finished generation job (record.json on Hugging Face) as the answer get_asset gives for a pack asset.
+function describeGenerated(record, packBase) {
+  const asset = {
+    id: `generated-glb:${record.id}`,
+    title: record.title,
+    source: "generated-glb",
+    kind: "model",
+    licence: record.licence,
+    licence_url: LICENCE_URL_MIT,
+    credit: record.credit,
+    page: `${packBase}/generated-glb/tree/main/generated/${record.id}`,
+    size_m: record.size_m ?? null,
+    file_units: record.file_units,
+    triangles: record.triangles?.engine ?? null,
+    notes: `AI-generated with ${record.model}. ${record.scale ? `Multiply the file by ${record.scale} to reach the size asked for.` : ""}`.trim(),
+    ai_generated: true,
+    pack: "generated-glb",
+    tiers: record.files,
+    thumbnail: record.thumbnail,
+  };
+  const answer = addTiers(describeRecord(asset), asset, { requirements: record.tier_requirements ?? {}, packBase, tierInput: null, gateBase: null });
+  if (record.scale) answer.scale_to_apply = record.scale;
+  answer.triangles_per_tier = record.triangles;
+  return answer;
+}
+
+export function createTools({ index, gateBase = null, fetchImpl = fetch, generation = null }) {
   async function searchAssets(input) {
     const query = String(input.query ?? "");
     const limit = Math.min(50, Math.max(1, Number(input.limit) || 10));
@@ -187,56 +272,9 @@ export function createTools({ index, gateBase = null, fetchImpl = fetch }) {
     const record = await index.documentById(String(input.id ?? ""));
     if (!record) return { error: `No asset with id "${input.id}". Ids come from search_assets.` };
     const manifest = await index.manifest();
-    const answer = {
-      id: record.id,
-      title: record.title,
-      source: record.source,
-      kind: record.kind,
-      licence: record.licence,
-      licence_url: record.licence_url ?? null,
-      credit: record.credit ?? null,
-      credit_needed: !["CC0-1.0", "public-domain"].includes(record.licence),
-      authors: record.authors ?? null,
-      page: record.page ?? null,
-      size_m: record.size_m ?? null,
-      size_note: record.size_m
-        ? "bounding box x, y, z in metres (y up)"
-        : record.surface_m
-          ? `one texture repeat covers ${record.surface_m.join(" x ")} m`
-          : record.kind === "hdri"
-            ? null
-            : record.file_units ?? "size unknown: measure the bounding box after loading",
-      triangles: record.triangles ?? null,
-      notes: record.notes ?? null,
-    };
-
+    const answer = describeRecord(record);
     if (record.tiers) {
-      const requirements = manifest.tier_requirements?.[record.pack] ?? {};
-      const tiers = {};
-      const extraFiles = {};
-      for (const [name, path] of Object.entries(record.tiers)) {
-        const direct = packFileUrl(manifest.pack_base, record.pack, path);
-        if (!path.endsWith(".glb")) {
-          extraFiles[name] = direct;
-          continue;
-        }
-        if (!TIER_ORDER.includes(name)) continue;
-        tiers[name] = {
-          url: gateBase ? `${gateBase}/f/${gatePath(record.id)}/${name}.glb` : direct,
-          needs: decodersFor(requirements[name]),
-          note: TIER_NOTES[name],
-        };
-      }
-      const available = Object.keys(tiers);
-      const preferred = input.tier && tiers[input.tier] ? input.tier : defaultTier(available, requirements);
-      answer.glb_url = tiers[preferred].url;
-      answer.tier = preferred;
-      answer.needs = tiers[preferred].needs;
-      answer.load_three = threeLoadSnippet(answer.glb_url, answer.needs);
-      answer.tiers = Object.fromEntries(TIER_ORDER.filter((name) => tiers[name]).map((name) => [name, tiers[name]]));
-      if (Object.keys(extraFiles).length) answer.extra_files = extraFiles;
-      if (record.thumbnail) answer.thumbnail = packFileUrl(manifest.pack_base, record.pack, record.thumbnail);
-      return answer;
+      return addTiers(answer, record, { requirements: manifest.tier_requirements?.[record.pack] ?? {}, packBase: manifest.pack_base, tierInput: input.tier, gateBase });
     }
 
     if (record.link_out) {
@@ -303,9 +341,23 @@ export function createTools({ index, gateBase = null, fetchImpl = fetch }) {
     list_sources: listSources,
     find_elsewhere: findElsewhere,
   };
+  let definitions = TOOL_DEFINITIONS;
+  let queue = async () => [];
+  if (generation) {
+    const generated = createGenerationTools({
+      ...generation,
+      fetchImpl,
+      searchAssets,
+      describeGenerated: (record) => describeGenerated(record, PACK_BASE),
+    });
+    Object.assign(handlers, generated.handlers);
+    definitions = [...TOOL_DEFINITIONS, ...generated.definitions];
+    queue = generated.queue;
+  }
 
   return {
-    definitions: TOOL_DEFINITIONS,
+    definitions,
+    queue,
     async call(name, input) {
       const handler = handlers[name];
       if (!handler) throw new Error(`unknown tool ${name}`);

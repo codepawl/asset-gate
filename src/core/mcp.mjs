@@ -8,7 +8,7 @@ const SUPPORTED_VERSIONS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-0
 const INSTRUCTIONS =
   "Free 3D assets for building scenes. search_assets finds models, materials and HDRIs (sizes in metres where known); " +
   "get_asset gives the file URL and a credit line to keep with the asset; list_sources shows the libraries and licences; " +
-  "find_elsewhere links other free libraries when nothing fits. Keep every non-CC0 credit line in the project's credits.";
+  "find_elsewhere links other free libraries when nothing fits; on the hosted gate, generate_asset then queues an AI-generated model (poll get_generation). Keep every non-CC0 credit line in the project's credits.";
 
 function result(id, value) {
   return { jsonrpc: "2.0", id, result: value };

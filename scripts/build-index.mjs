@@ -8,7 +8,7 @@ import { cpSync, createReadStream, existsSync, mkdirSync, readFileSync, rmSync, 
 import { createInterface } from "node:readline";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { HUGGING_FACE_BASE, LIBRARIES, LICENCE_URLS, PACKS, licenceClass, normaliseLicence } from "./sources.mjs";
+import { GENERATED_TIER_REQUIREMENTS, HUGGING_FACE_BASE, LIBRARIES, LICENCE_URLS, PACKS, licenceClass, normaliseLicence } from "./sources.mjs";
 import { BUCKET_COUNT, bucketOf, words } from "../src/core/text.mjs";
 import { packFacets } from "../src/core/facets.mjs";
 
@@ -235,7 +235,7 @@ function packRecord(pack, row, simreadyBounds) {
     page: row.source_url ?? row.poly_url ?? `${HUGGING_FACE_BASE}/${pack.repo}`,
     size_m: sizeMetres,
     file_units: sizeMetres ? "metres" : (row.size_units ? `file units, not metres: ${row.size_units.join(" x ")}` : (pack.unitScale ?? null)),
-    triangles: row.triangles ?? null,
+    triangles: (typeof row.triangles === "object" ? row.triangles?.engine : row.triangles) ?? null,
     pack: pack.repo,
     tiers,
     // ABO rows carry no thumbnail field, but the pack has one WebP per object in thumbs/.
@@ -365,6 +365,7 @@ async function main() {
 
   for (const pack of PACKS) {
     const path = join(packsFolder, pack.repo, "metadata.jsonl");
+    if (!existsSync(path) && pack.optional) continue;
     if (!existsSync(path)) throw new Error(`missing ${path}; run scripts/fetch-sources.sh`);
     const rows = await readJsonLines(path);
     const sourceIndex = sourceKeys.push(pack.repo) - 1;
@@ -494,9 +495,12 @@ async function main() {
     sources: sourceKeys,
     pack_base: HUGGING_FACE_BASE,
     // From scripts/probe-tiers.mjs: the glTF extensions each pack's tiers require.
-    tier_requirements: existsSync(join(projectFolder, "cache", "tier-requirements.json"))
-      ? JSON.parse(readFileSync(join(projectFolder, "cache", "tier-requirements.json"), "utf8"))
-      : {},
+    tier_requirements: {
+      "generated-glb": GENERATED_TIER_REQUIREMENTS,
+      ...(existsSync(join(projectFolder, "cache", "tier-requirements.json"))
+        ? JSON.parse(readFileSync(join(projectFolder, "cache", "tier-requirements.json"), "utf8"))
+        : {}),
+    },
     source_summaries: sourceSummaries,
   };
   writeFileSync(join(outputFolder, "manifest.json"), JSON.stringify(manifest, null, 1));

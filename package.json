@@ -1,6 +1,6 @@
 {
   "name": "@codepawl/asset-gate",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "MCP server that lets AI agents find free 3D assets (GLB models, materials, HDRIs) with real sizes, licences and credit lines.",
   "type": "module",
   "license": "MIT",

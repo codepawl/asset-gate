@@ -6,9 +6,10 @@
   "assets": {
     "directory": "dist/site",
     "binding": "ASSETS",
-    "run_worker_first": ["/mcp", "/mcp/", "/f/*", "/polyhaven/*", "/api/*"]
+    "run_worker_first": ["/mcp", "/mcp/", "/f/*", "/polyhaven/*", "/api/*", "/gen/*"]
   },
   "routes": [{ "pattern": "assets.codepawl.com", "custom_domain": true }],
   "rules": [{ "type": "Data", "globs": ["**/*.bin"], "fallthrough": true }],
+  "kv_namespaces": [{ "binding": "GEN_QUEUE", "id": "e2687b8ac14845788d8e2a2d90c74149" }],
   "observability": { "enabled": true }
 }

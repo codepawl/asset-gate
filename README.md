@@ -38,12 +38,33 @@ direct Hugging Face URLs.
 | `search_assets` | Plain words plus filters: `kind`, `licence` (`cc0`, `shippable`), `no_share_alike`, `glb_only`, `size_m` or `min_size_m`/`max_size_m`, `real_size_only`, `style`, `rigged`, `animated`, `no_ai_generated`, `sources`. A size in the words ("rock 2 m") becomes a size filter. |
 | `get_asset` | GLB URL, every tier with the decoders it needs (`MeshoptDecoder`, `KTX2Loader`, measured per pack), a three.js load snippet, size, licence, licence URL, author and credit line. The default tier is the one that needs the fewest decoders. Poly Haven assets give glTF, HDRI or texture URLs; Megascans gives a Fab link only. |
 | `list_sources` | Every pack and library with counts, licences and scale. |
+| `generate_asset`, `get_generation` | Hosted gate only. When nothing fits, queue a model made with TRELLIS.2 (MIT, marked `ai_generated`) and poll for it. See below. |
 | `find_elsewhere` | Search links for Poly Haven, ambientCG, Poly Pizza, Sketchfab, Smithsonian, NASA, Kenney, OpenGameArt and Fab when nothing fits. |
 
 [examples/reading-corner](examples/reading-corner) is a three.js scene that an agent built with these tools alone.
 
 The hosted gate also answers plain HTTP: `/api/search?q=wooden%20chair&glb_only=true`, `/api/asset/<id>`,
 `/api/sources`, `/api/elsewhere?q=`.
+
+## Generated models
+
+`generate_asset {prompt, image_url?, size_m?}` searches first and returns existing assets when they match every word
+("generation skipped: found existing assets"). Only a miss queues a job: it returns `{job_id, status: "queued", eta_s}`,
+and `get_generation {job_id}` answers `queued`, `running`, `done` (the same shape as `get_asset`, plus
+`scale_to_apply` when `size_m` was given) or `failed` (a soft fail with a reason and no results). The same prompt and
+image never generate twice: finished jobs are cached in
+[codepawl/generated-glb](https://huggingface.co/datasets/codepawl/generated-glb). Limits: 5 new jobs per IP per day and
+50 queued jobs in all. Over a limit, or when generation is unavailable, the answer is "no result". The same two calls are
+`POST /api/generate` and `GET /api/generation/<id>`.
+
+The Worker never calls a paid model and holds no keys. It stores the job in a KV namespace (2-day TTL) and lists it at
+`GET /gen/queue`. `scripts/gen-processor.mjs --watch` on the owner's PC polls that list and does the work: FLUX schnell
+for a reference picture of a text prompt, TRELLIS.2 on fal for the model, a sanity check (parses, mesh, over 500
+triangles, not flat, finite), then three tiers (`engine` about 190k triangles, `lod1` about 25k, `web` with meshopt and
+WebP) uploaded with a `record.json` and `status.json` to the dataset. fal spend is capped at $20 a month in a local
+ledger (`~/.config/asset-gate/gen-ledger.json`). The fal key and the Hugging Face login stay on that machine. Tooling
+(gltf-transform, meshoptimizer, sharp) installs under `~/.cache/asset-gate-tools`; the gate itself has no dependencies.
+Generated assets join the search index as the `generated-glb` pack and are hidden by `no_ai_generated`.
 
 ## Sources
 

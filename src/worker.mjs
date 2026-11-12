@@ -3,6 +3,8 @@
 //   GET  /f/<id>/<tier>.glb           302 to the file on Hugging Face (never proxied)
 //   GET  /polyhaven/<id>/<res>.gltf   Poly Haven glTF with absolute file URLs, so it loads from one URL
 //   GET  /api/search?q=..., /api/asset/<id>, /api/sources   the same tools as plain JSON
+//   POST /api/generate, GET /api/generation/<id>   generate_asset and get_generation
+//   GET  /gen/queue                   queued generation jobs, polled by scripts/gen-processor.mjs
 // The index files are static assets under /index/v1/ in the same deploy.
 
 import { AssetIndex } from "./core/search.mjs";
@@ -118,7 +120,7 @@ async function polyHavenGltf(assetId, resolution, context) {
   return response;
 }
 
-async function handleApi(url, tools) {
+async function handleApi(request, url, tools) {
   const parts = url.pathname.split("/").filter(Boolean);
   if (parts[1] === "search") {
     const parameters = Object.fromEntries(url.searchParams);
@@ -138,9 +140,15 @@ async function handleApi(url, tools) {
   if (parts[1] === "asset" && parts[2]) {
     return json(await tools.call("get_asset", { id: decodeURIComponent(parts.slice(2).join("/")), tier: url.searchParams.get("tier") ?? undefined, resolution: url.searchParams.get("resolution") ?? undefined }));
   }
+  if (parts[1] === "generate") {
+    const input = request.method === "POST" ? await request.json().catch(() => ({})) : Object.fromEntries(url.searchParams);
+    if (request.method !== "POST" && input.q) input.prompt = input.q;
+    return json(await tools.call("generate_asset", input));
+  }
+  if (parts[1] === "generation" && parts[2]) return json(await tools.call("get_generation", { job_id: parts[2] }));
   if (parts[1] === "sources") return json(await tools.call("list_sources", {}));
   if (parts[1] === "elsewhere") return json(await tools.call("find_elsewhere", { query: url.searchParams.get("q") ?? "", kind: url.searchParams.get("kind") ?? undefined }));
-  return json({ error: "unknown endpoint", endpoints: ["/api/search?q=", "/api/asset/<id>", "/api/sources", "/api/elsewhere?q="] }, 404);
+  return json({ error: "unknown endpoint", endpoints: ["/api/search?q=", "/api/asset/<id>", "/api/sources", "/api/elsewhere?q=", "/api/generate", "/api/generation/<id>"] }, 404);
 }
 
 export default {
@@ -152,7 +160,10 @@ export default {
     // Behind the custom domain requests arrive over https; wrangler dev reports the route host over http.
     const isLocal = ["localhost", "127.0.0.1"].includes(url.hostname);
     const gateBase = isLocal ? url.origin : `https://${url.host}`;
-    const tools = createTools({ index: assetIndex, gateBase });
+    const generation = env.GEN_QUEUE
+      ? { kv: env.GEN_QUEUE, cache: caches.default, clientIp: request.headers.get("CF-Connecting-IP") ?? "unknown" }
+      : null;
+    const tools = createTools({ index: assetIndex, gateBase, generation });
     const handle = createMcpHandler(tools, { onToolCall: logToolCall });
 
     try {
@@ -161,7 +172,8 @@ export default {
       if (fileMatch) return await redirectToFile(assetIndex, `${decodeURIComponent(fileMatch[1])}:${decodeURIComponent(fileMatch[2])}`, fileMatch[3]);
       const gltfMatch = /^\/polyhaven\/([A-Za-z0-9_-]+)\/(1k|2k|4k|8k)\.gltf$/.exec(url.pathname);
       if (gltfMatch) return await polyHavenGltf(gltfMatch[1], gltfMatch[2], context);
-      if (url.pathname.startsWith("/api/")) return await handleApi(url, tools);
+      if (url.pathname === "/gen/queue") return json({ jobs: await tools.queue() }, 200, { "Cache-Control": "no-store" });
+      if (url.pathname.startsWith("/api/")) return await handleApi(request, url, tools);
       return env.ASSETS.fetch(request);
     } catch (error) {
       console.error(JSON.stringify({ event: "error", path: url.pathname, message: String(error?.message ?? error) }));
