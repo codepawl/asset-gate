@@ -69,6 +69,14 @@ export const PACKS = [
     credit: (row) => `${row.title}, ${row.authors}, Smithsonian Open Access (CC0).`,
   },
   {
+    repo: "kenney-glb", name: "Kenney game kits", licence: "CC0-1.0", unitScale: "file units, as the kit was built",
+    credit: (row) => `${row.title} from ${row.kit} by Kenney (kenney.nl), CC0. Repacked as GLB by CodePawl.`,
+  },
+  {
+    repo: "quaternius-glb", name: "Quaternius packs", licence: "CC0-1.0", unitScale: "file units, as the pack was built",
+    credit: (row) => `${row.title} from ${row.kit} by Quaternius (quaternius.com), CC0. Converted to GLB by CodePawl.`,
+  },
+  {
     repo: "nasa-3d-glb", name: "NASA 3D Resources", licence: "public-domain",
     credit: (row) => `${row.title}, NASA 3D Resources (github.com/nasa/NASA-3D-Resources). No US copyright; do not imply NASA endorsement.`,
   },

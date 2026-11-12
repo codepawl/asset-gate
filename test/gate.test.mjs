@@ -83,8 +83,16 @@ test("kind and source filters hold", async () => {
   const hdri = await tool("search_assets", { query: "sunset", kind: "hdri", limit: 20 });
   assert.ok(hdri.count > 0);
   for (const result of hdri.results) assert.equal(result.kind, "hdri");
+  // "kenney" still works as a source name and now gives the repacked GLBs.
   const kenney = await tool("search_assets", { query: "crate", sources: ["kenney"], limit: 20 });
-  for (const result of kenney.results) assert.equal(result.source, "kenney");
+  assert.ok(kenney.count > 0);
+  for (const result of kenney.results) {
+    assert.equal(result.source, "kenney-glb");
+    assert.equal(result.glb_ready, true);
+  }
+  const asset = await tool("get_asset", { id: kenney.results[0].id });
+  assert.equal(asset.tier, "engine");
+  assert.match(asset.credit, /Kenney \(kenney\.nl\), CC0/);
 });
 
 test("an empty query with filters returns the best-ranked matching assets", async () => {

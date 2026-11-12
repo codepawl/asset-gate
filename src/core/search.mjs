@@ -127,10 +127,11 @@ function makeFilter(manifest, filters, text) {
   const kindIndex = filters.kind ? KINDS.indexOf(filters.kind) : -1;
   if (filters.kind && kindIndex < 0) throw new Error(`kind must be one of ${KINDS.join(", ")}`);
   const sourceIndexes = filters.sources?.length
-    ? new Set(filters.sources.map((source) => {
-      const index = manifest.sources.indexOf(source);
-      if (index < 0) throw new Error(`unknown source "${source}"; list_sources names them`);
-      return index;
+    ? new Set(filters.sources.flatMap((source) => {
+      // "kenney" also means the repacked "kenney-glb", so old names keep working after a library gets its own pack.
+      const indexes = [source, `${source}-glb`].map((name) => manifest.sources.indexOf(name)).filter((index) => index >= 0);
+      if (!indexes.length) throw new Error(`unknown source "${source}"; list_sources names them`);
+      return indexes;
     }))
     : null;
   const target = filters.size_m ?? (filters.min_size_m || filters.max_size_m ? null : sizeFromQuery(text));

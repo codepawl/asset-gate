@@ -3,8 +3,8 @@
 An MCP server that lets any AI agent find free 3D assets and use them right away. Ask for "a wooden chair, 0.8 m"
 and get a GLB URL, the real size in metres, the licence and a credit line to paste into the project.
 
-- **75,509 assets** from 15 GLB packs on Hugging Face and 5 libraries.
-- **41,292 have a ready GLB**: web, KTX2, LOD, mobile, engine and collision tiers.
+- **75,598 assets** from 17 GLB packs on Hugging Face and 4 libraries.
+- **46,309 have a ready GLB**: web, KTX2, LOD, mobile, engine and collision tiers.
 - Sizes in metres where the source knows them, and the file's units where it does not.
 - Every result names its licence. CC BY results come with a ready credit line.
 
@@ -66,8 +66,8 @@ The hosted gate also answers plain HTTP: `/api/search?q=wooden%20chair&glb_only=
 | [CT anatomy](https://huggingface.co/datasets/codepawl/ct-anatomy-glb) | 27 | CC BY 4.0 | GLB |
 | Poly Haven | 2,387 | CC0 | glTF, HDRI and texture URLs from the Poly Haven API |
 | ambientCG | 2,917 | CC0 | zip downloads |
-| Kenney | 4,434 | CC0 | inside the kit zip |
-| Quaternius | 1,783 | CC0 (one pack link-only) | pack download |
+| [Kenney game kits](https://huggingface.co/datasets/codepawl/kenney-glb) | 4,451 | CC0 | GLB, kit units |
+| [Quaternius packs](https://huggingface.co/datasets/codepawl/quaternius-glb) | 566 | CC0 | GLB, many rigged and animated; the other packs link to their download |
 | Quixel Megascans | 22,696 | Fab Standard Licence | link to Fab only |
 
 Megascans files are licensed by Fab to each user and are never hosted or passed on here. The full licence notes per

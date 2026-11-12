@@ -90,6 +90,9 @@ function packTiers(pack, row) {
   return tiers;
 }
 
+// asset-index rows by id, so repacked kits keep the tags and surface words the index already has.
+const libraryRowsById = new Map();
+
 const measuredBoundsByPack = new Map();
 
 function measuredBounds(pack) {
@@ -195,6 +198,18 @@ function packRecord(pack, row, simreadyBounds) {
     case "nasa-3d-glb":
       extraWords.push("nasa", "space", row.kind);
       break;
+    case "kenney-glb":
+    case "quaternius-glb": {
+      style = "lowpoly";
+      category = `${pack.repo === "kenney-glb" ? "kenney" : "quaternius"}/${row.kit_slug}`;
+      const clips = row.clips ?? [];
+      animated = Boolean(row.animated);
+      rigged = Boolean(row.rigged);
+      const libraryRow = libraryRowsById.get(`${pack.repo === "kenney-glb" ? "kenney" : "quaternius"}:${row.id}`);
+      extraWords.push(row.kit, ...(libraryRow?.tags ?? []), libraryRow?.surface_type, ...clips);
+      if (clips.length) notes.push(`clips: ${clips.join(", ")}`);
+      break;
+    }
     case "objaverse-clean-glb":
     case "google-poly-glb":
       if (pack.repo === "google-poly-glb") style = "lowpoly";
@@ -218,7 +233,7 @@ function packRecord(pack, row, simreadyBounds) {
     credit: pack.credit({ ...row, title, license: licence }),
     page: row.source_url ?? row.poly_url ?? `${HUGGING_FACE_BASE}/${pack.repo}`,
     size_m: sizeMetres,
-    file_units: sizeMetres ? "metres" : (pack.unitScale ?? null),
+    file_units: sizeMetres ? "metres" : (row.size_units ? `file units, not metres: ${row.size_units.join(" x ")}` : (pack.unitScale ?? null)),
     triangles: row.triangles ?? null,
     pack: pack.repo,
     tiers,
@@ -339,6 +354,13 @@ async function main() {
     for (const row of await readJsonLines(manifestPath)) if (row.bounds) simreadyBounds.set(row.asset, row.bounds);
   }
 
+  if (!existsSync(assetIndexPath)) throw new Error(`missing ${assetIndexPath}; run scripts/fetch-sources.sh`);
+  const allLibraryRows = await readJsonLines(assetIndexPath);
+  for (const row of allLibraryRows) libraryRowsById.set(row.asset_id, row);
+  // Library rows that a GLB pack now covers: Smithsonian, Kenney models, and Quaternius packs with converted models.
+  const repackedIds = new Set();
+  const repackedQuaterniusPacks = new Set();
+
   for (const pack of PACKS) {
     const path = join(packsFolder, pack.repo, "metadata.jsonl");
     if (!existsSync(path)) throw new Error(`missing ${path}; run scripts/fetch-sources.sh`);
@@ -348,6 +370,11 @@ async function main() {
     for (const row of rows) {
       const entry = packRecord(pack, row, simreadyBounds);
       entry.facts.sourceIndex = sourceIndex;
+      if (pack.repo === "kenney-glb") repackedIds.add(`kenney:${row.id}`);
+      if (pack.repo === "quaternius-glb") {
+        repackedIds.add(`quaternius:${row.id}`);
+        repackedQuaterniusPacks.add(`quaternius:${row.kit_slug}`);
+      }
       entries.push(entry);
       licences.set(entry.record.licence, (licences.get(entry.record.licence) ?? 0) + 1);
     }
@@ -363,8 +390,7 @@ async function main() {
     });
   }
 
-  if (!existsSync(assetIndexPath)) throw new Error(`missing ${assetIndexPath}; run scripts/fetch-sources.sh`);
-  const libraryRows = (await readJsonLines(assetIndexPath)).filter((row) => row.source !== "smithsonian");
+  const libraryRows = allLibraryRows.filter((row) => row.source !== "smithsonian" && !repackedIds.has(row.asset_id) && !repackedQuaterniusPacks.has(row.asset_id));
   const librarySummaries = new Map();
   for (const row of libraryRows) {
     if (!sourceKeys.includes(row.source)) sourceKeys.push(row.source);
