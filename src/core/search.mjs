@@ -23,17 +23,19 @@ export class AssetIndex {
     return this.facetsPromise;
   }
 
-  async documents(documentNumbers) {
+  // Full records ("docs") or the short ones search results show ("cards").
+  async documents(documentNumbers, folder = "docs") {
     const manifest = await this.manifest();
+    const blockSize = folder === "cards" ? manifest.card_block_size : manifest.block_size;
     const blocks = new Map();
     for (const number of documentNumbers) {
-      const block = Math.floor(number / manifest.block_size);
-      if (!blocks.has(block)) blocks.set(block, this.store.json(`docs/${block}.json`));
+      const block = Math.floor(number / blockSize);
+      if (!blocks.has(block)) blocks.set(block, this.store.json(`${folder}/${block}.json`));
     }
     const found = [];
     for (const number of documentNumbers) {
-      const block = await blocks.get(Math.floor(number / manifest.block_size));
-      found.push(block[number % manifest.block_size]);
+      const block = await blocks.get(Math.floor(number / blockSize));
+      found.push(block[number % blockSize]);
     }
     return found;
   }
@@ -91,7 +93,7 @@ export class AssetIndex {
       picked.push(...ranked.slice(0, limit));
     }
 
-    const records = await this.documents(picked.map((candidate) => candidate.number));
+    const records = await this.documents(picked.map((candidate) => candidate.number), "cards");
     return {
       matched_words: tokens,
       results: records.map((record, index) => ({ record, matched: picked[index].matched, query_words: tokens.length })),

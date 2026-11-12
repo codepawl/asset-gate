@@ -9,5 +9,6 @@
     "run_worker_first": ["/mcp", "/mcp/", "/f/*", "/polyhaven/*", "/api/*"]
   },
   "routes": [{ "pattern": "assets.codepawl.com", "custom_domain": true }],
+  "rules": [{ "type": "Data", "globs": ["**/*.bin"], "fallthrough": true }],
   "observability": { "enabled": true }
 }

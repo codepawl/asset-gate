@@ -7,12 +7,59 @@ export const VERSION = "0.1.0";
 export const USER_AGENT = `codepawl-asset-gate/${VERSION} (+https://github.com/codepawl/asset-gate)`;
 const TIER_ORDER = ["web", "ktx2", "mobile", "lod1", "lod2", "lod3", "engine", "collision"];
 const TIER_NOTES = {
-  web: "meshopt geometry and WebP textures: in three.js call loader.setMeshoptDecoder(MeshoptDecoder)",
-  ktx2: "meshopt geometry and KTX2 textures: three.js needs MeshoptDecoder and KTX2Loader",
-  mobile: "small textures and fewer triangles, meshopt: needs MeshoptDecoder",
-  engine: "plain GLB, no compression: loads anywhere (Blender, Godot, Unity, any glTF loader)",
+  web: "smallest full-quality file, for the web",
+  ktx2: "GPU-compressed textures, least video memory",
+  mobile: "small textures and fewer triangles",
+  lod1: "level of detail 1 (about half the triangles)",
+  lod2: "level of detail 2",
+  lod3: "level of detail 3 (fewest triangles)",
+  engine: "least compressed; for Blender, Godot, Unity and offline renders",
   collision: "convex hulls for physics, not for display",
 };
+const THREE_VERSION = "0.170.0";
+
+// glTF extensions a stock three.js GLTFLoader cannot open on its own, and the decoder each one needs.
+const DECODERS = {
+  EXT_meshopt_compression: "MeshoptDecoder",
+  KHR_texture_basisu: "KTX2Loader",
+  KHR_draco_mesh_compression: "DRACOLoader",
+};
+
+function decodersFor(requiredExtensions) {
+  return [...new Set((requiredExtensions ?? []).map((extension) => DECODERS[extension]).filter(Boolean))];
+}
+
+// Prefer a display tier that needs no decoder, then one that needs only the small meshopt decoder.
+function defaultTier(available, requirements) {
+  const display = TIER_ORDER.filter((tier) => tier !== "collision" && available.includes(tier));
+  const cost = (tier) => {
+    const decoders = decodersFor(requirements?.[tier]);
+    if (decoders.length === 0) return tier === "engine" ? 1 : 0;
+    if (decoders.length === 1 && decoders[0] === "MeshoptDecoder") return 2;
+    return 3 + decoders.length;
+  };
+  return display.sort((left, right) => cost(left) - cost(right) || display.indexOf(left) - display.indexOf(right))[0];
+}
+
+function threeLoadSnippet(url, decoders) {
+  const lines = [];
+  const imports = ['import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";'];
+  lines.push("const loader = new GLTFLoader();");
+  if (decoders.includes("MeshoptDecoder")) {
+    imports.push('import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";');
+    lines.push("loader.setMeshoptDecoder(MeshoptDecoder);");
+  }
+  if (decoders.includes("KTX2Loader")) {
+    imports.push('import { KTX2Loader } from "three/addons/loaders/KTX2Loader.js";');
+    lines.push(`loader.setKTX2Loader(new KTX2Loader().setTranscoderPath("https://cdn.jsdelivr.net/npm/three@${THREE_VERSION}/examples/jsm/libs/basis/").detectSupport(renderer));`);
+  }
+  if (decoders.includes("DRACOLoader")) {
+    imports.push('import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";');
+    lines.push(`loader.setDRACOLoader(new DRACOLoader().setDecoderPath("https://cdn.jsdelivr.net/npm/three@${THREE_VERSION}/examples/jsm/libs/draco/"));`);
+  }
+  lines.push(`loader.load("${url}", (gltf) => scene.add(gltf.scene));`);
+  return [...imports, ...lines].join("\n");
+}
 
 export const TOOL_DEFINITIONS = [
   {
@@ -52,7 +99,7 @@ export const TOOL_DEFINITIONS = [
       type: "object",
       properties: {
         id: { type: "string", description: "An id from search_assets, e.g. 'abo-glb:B07B4MTFP3' or 'polyhaven:rock_moss_set_01'." },
-        tier: { type: "string", enum: TIER_ORDER, description: "Preferred GLB tier. Default engine (plain GLB that any loader opens); web is smaller but needs MeshoptDecoder." },
+        tier: { type: "string", enum: TIER_ORDER, description: "GLB tier. By default the gate picks the one that needs the fewest decoders; each tier lists what it needs (MeshoptDecoder, KTX2Loader)." },
         resolution: { type: "string", enum: ["1k", "2k", "4k"], description: "Texture or HDRI resolution for Poly Haven assets. Default 1k." },
       },
       required: ["id"],
@@ -101,7 +148,7 @@ function summarise(record, packBase) {
     kind: record.kind,
     licence: record.licence,
     credit_needed: !["CC0-1.0", "public-domain"].includes(record.licence),
-    glb_ready: Boolean(record.tiers),
+    glb_ready: Boolean(record.glb ?? record.tiers),
   };
   if (record.category) summary.category = record.category;
   if (record.size_m) summary.size_m = record.size_m;
@@ -163,21 +210,31 @@ export function createTools({ index, gateBase = null, fetchImpl = fetch }) {
     };
 
     if (record.tiers) {
+      const requirements = manifest.tier_requirements?.[record.pack] ?? {};
       const tiers = {};
-      for (const name of TIER_ORDER) {
-        if (!record.tiers[name]) continue;
-        const direct = packFileUrl(manifest.pack_base, record.pack, record.tiers[name]);
-        tiers[name] = gateBase ? `${gateBase}/f/${gatePath(record.id)}/${name}.glb` : direct;
+      const extraFiles = {};
+      for (const [name, path] of Object.entries(record.tiers)) {
+        const direct = packFileUrl(manifest.pack_base, record.pack, path);
+        if (!path.endsWith(".glb")) {
+          extraFiles[name] = direct;
+          continue;
+        }
+        if (!TIER_ORDER.includes(name)) continue;
+        tiers[name] = {
+          url: gateBase ? `${gateBase}/f/${gatePath(record.id)}/${name}.glb` : direct,
+          needs: decodersFor(requirements[name]),
+          note: TIER_NOTES[name],
+        };
       }
-      const preferred = input.tier && tiers[input.tier] ? input.tier : tiers.engine ? "engine" : Object.keys(tiers)[0];
-      answer.glb_url = tiers[preferred];
+      const available = Object.keys(tiers);
+      const preferred = input.tier && tiers[input.tier] ? input.tier : defaultTier(available, requirements);
+      answer.glb_url = tiers[preferred].url;
       answer.tier = preferred;
-      answer.tier_note = TIER_NOTES[preferred] ?? null;
-      answer.tiers = tiers;
+      answer.needs = tiers[preferred].needs;
+      answer.load_three = threeLoadSnippet(answer.glb_url, answer.needs);
+      answer.tiers = Object.fromEntries(TIER_ORDER.filter((name) => tiers[name]).map((name) => [name, tiers[name]]));
+      if (Object.keys(extraFiles).length) answer.extra_files = extraFiles;
       if (record.thumbnail) answer.thumbnail = packFileUrl(manifest.pack_base, record.pack, record.thumbnail);
-      answer.load = preferred === "engine"
-        ? `new GLTFLoader().load("${answer.glb_url}", (gltf) => scene.add(gltf.scene))`
-        : `const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder); loader.load("${answer.glb_url}", (gltf) => scene.add(gltf.scene))`;
       return answer;
     }
 

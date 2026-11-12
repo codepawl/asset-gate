@@ -4,16 +4,38 @@
   "description": "MCP server that lets AI agents find free 3D assets (GLB models, materials, HDRIs) with real sizes, licences and credit lines.",
   "type": "module",
   "license": "MIT",
-  "bin": { "asset-gate": "bin/asset-gate.mjs" },
-  "files": ["bin", "src", "README.md", "LICENSE"],
-  "engines": { "node": ">=20" },
+  "bin": {
+    "asset-gate": "bin/asset-gate.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "fetch": "bash scripts/fetch-sources.sh",
     "build": "node scripts/build-index.mjs",
+    "probe": "node scripts/probe-tiers.mjs",
     "test": "node --test \"test/*.test.mjs\"",
+    "check-urls": "node scripts/check-urls.mjs",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy"
   },
-  "repository": { "type": "git", "url": "git+https://github.com/codepawl/asset-gate.git" },
-  "keywords": ["mcp", "3d", "glb", "assets", "cc0", "three.js", "agents"]
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codepawl/asset-gate.git"
+  },
+  "keywords": [
+    "mcp",
+    "3d",
+    "glb",
+    "assets",
+    "cc0",
+    "three.js",
+    "agents"
+  ]
 }

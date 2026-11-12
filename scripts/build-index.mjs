@@ -21,7 +21,9 @@ const assetIndexPath = argumentList.includes("--asset-index")
   ? argumentList[argumentList.indexOf("--asset-index") + 1]
   : join(projectFolder, "cache", "asset-index", "metadata.jsonl");
 
-const BLOCK_SIZE = 100;
+const BLOCK_SIZE = 20;
+const CARD_BLOCK_SIZE = 50;
+const CARD_FIELDS = ["id", "title", "source", "kind", "category", "licence", "size_m", "surface_m", "file_units", "triangles", "rigged", "animated", "pack", "thumbnail"];
 const MAX_POSTINGS_PER_WORD = 6000;
 const READ_ON = new Date().toISOString().slice(0, 10);
 
@@ -377,6 +379,7 @@ async function main() {
   rmSync(outputFolder, { recursive: true, force: true });
   mkdirSync(join(outputFolder, "docs"), { recursive: true });
   mkdirSync(join(outputFolder, "words"), { recursive: true });
+  mkdirSync(join(outputFolder, "cards"), { recursive: true });
 
   const facets = new Uint32Array(entries.length);
   const postings = new Map();
@@ -407,6 +410,17 @@ async function main() {
     writeFileSync(join(outputFolder, "docs", `${start / BLOCK_SIZE}.json`), JSON.stringify(block));
   }
 
+  // Cards: the few fields a search result shows, in small blocks, so a search decodes little.
+  for (let start = 0; start < entries.length; start += CARD_BLOCK_SIZE) {
+    const block = entries.slice(start, start + CARD_BLOCK_SIZE).map((entry) => {
+      const card = {};
+      for (const field of CARD_FIELDS) if (entry.record[field] !== undefined) card[field] = entry.record[field];
+      if (entry.record.tiers) card.glb = true;
+      return card;
+    });
+    writeFileSync(join(outputFolder, "cards", `${start / CARD_BLOCK_SIZE}.json`), JSON.stringify(block));
+  }
+
   const buckets = Array.from({ length: BUCKET_COUNT }, () => ({}));
   for (const [word, list] of postings) buckets[bucketOf(word)][word] = list;
   for (const [index, bucket] of buckets.entries()) writeFileSync(join(outputFolder, "words", `${index}.json`), JSON.stringify(bucket));
@@ -426,11 +440,16 @@ async function main() {
     built_on: READ_ON,
     documents: entries.length,
     block_size: BLOCK_SIZE,
+    card_block_size: CARD_BLOCK_SIZE,
     bucket_count: BUCKET_COUNT,
     id_bucket_count: 256,
     words: postings.size,
     sources: sourceKeys,
     pack_base: HUGGING_FACE_BASE,
+    // From scripts/probe-tiers.mjs: the glTF extensions each pack's tiers require.
+    tier_requirements: existsSync(join(projectFolder, "cache", "tier-requirements.json"))
+      ? JSON.parse(readFileSync(join(projectFolder, "cache", "tier-requirements.json"), "utf8"))
+      : {},
     source_summaries: sourceSummaries,
   };
   writeFileSync(join(outputFolder, "manifest.json"), JSON.stringify(manifest, null, 1));

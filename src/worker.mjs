@@ -8,6 +8,9 @@
 import { AssetIndex } from "./core/search.mjs";
 import { createTools, USER_AGENT } from "./core/tools.mjs";
 import { createMcpHandler } from "./core/mcp.mjs";
+// Bundled with the code, so a fresh isolate does not fetch them before its first search.
+import bundledManifest from "../dist/site/index/v1/manifest.json";
+import bundledFacets from "../dist/site/index/v1/facets.bin";
 
 const INDEX_PREFIX = "/index/v1/";
 const CACHE_LIMIT = 400;
@@ -36,9 +39,11 @@ function assetStore(env, origin) {
   }
   return {
     json(path) {
+      if (path === "manifest.json") return Promise.resolve(bundledManifest);
       return parsedFiles.get(path) ?? remember(path, read(path).then((response) => response.json()));
     },
     bytes(path) {
+      if (path === "facets.bin") return Promise.resolve(new Uint8Array(bundledFacets));
       return parsedFiles.get(path) ?? remember(path, read(path).then(async (response) => new Uint8Array(await response.arrayBuffer())));
     },
   };

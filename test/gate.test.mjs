@@ -75,11 +75,25 @@ test("an empty query with filters returns the best-ranked matching assets", asyn
 test("get_asset gives GLB tiers, a size and a credit for a pack asset", async () => {
   const found = await tool("search_assets", { query: "office chair", sources: ["abo-glb"], limit: 1 });
   const asset = await tool("get_asset", { id: found.results[0].id });
-  assert.match(asset.glb_url, /^https:\/\/huggingface\.co\/datasets\/codepawl\/abo-glb\/resolve\/main\/engine\//);
-  assert.ok(asset.tiers.web && asset.tiers.engine);
+  // ABO's engine tier carries KTX2 textures, so the default is the web tier, which needs only MeshoptDecoder.
+  assert.equal(asset.tier, "web");
+  assert.deepEqual(asset.needs, ["MeshoptDecoder"]);
+  assert.match(asset.glb_url, /^https:\/\/huggingface\.co\/datasets\/codepawl\/abo-glb\/resolve\/main\/objects\//);
+  assert.deepEqual(asset.tiers.engine.needs, ["KTX2Loader"]);
+  assert.match(asset.load_three, /setMeshoptDecoder/);
   assert.equal(asset.size_m.length, 3);
   assert.match(asset.credit, /CC BY 4\.0/);
   assert.equal(asset.credit_needed, true);
+});
+
+test("packs whose engine tier needs no decoder default to it", async () => {
+  const found = await tool("search_assets", { query: "chair", sources: ["scanned-objects-glb", "google-poly-glb"], limit: 3 });
+  assert.ok(found.count > 0);
+  for (const result of found.results) {
+    const asset = await tool("get_asset", { id: result.id });
+    assert.equal(asset.tier, "engine", result.id);
+    assert.deepEqual(asset.needs, []);
+  }
 });
 
 test("Megascans comes back as a link only", async () => {

@@ -25,7 +25,8 @@ for (const [source, numbers] of bySource) {
   const picks = [numbers[0], numbers[Math.floor(numbers.length / 2)], numbers[numbers.length - 1]].slice(0, samplesPerSource);
   for (const record of await index.documents(picks)) {
     const asset = await tools.call("get_asset", { id: record.id });
-    const urls = { ...(asset.tiers ?? {}), thumbnail: asset.thumbnail, gltf: asset.gltf_url, hdri: asset.hdri_url };
+    const tierUrls = Object.fromEntries(Object.entries(asset.tiers ?? {}).map(([name, tier]) => [name, tier.url]));
+    const urls = { ...tierUrls, ...(asset.extra_files ?? {}), thumbnail: asset.thumbnail, gltf: asset.gltf_url, hdri: asset.hdri_url };
     for (const [label, url] of Object.entries(urls)) {
       if (!url || url.includes("polyhaven.com/asset_img")) continue;
       const response = await fetch(url, { method: "HEAD", redirect: "follow" });
