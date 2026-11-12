@@ -57,7 +57,7 @@ export const PACKS = [
     credit: () => "Google Scanned Objects by Google Research (fuel.gazebosim.org/1.0/GoogleResearch), CC BY 4.0. Converted to GLB by CodePawl.",
   },
   {
-    repo: "objaverse-clean-glb", name: "Objaverse (CC0 and CC BY)", licence: null, unitScale: "longest side 1 unit",
+    repo: "objaverse-clean-glb", name: "Objaverse (CC0 and CC BY, links to Sketchfab)", licence: null, unitScale: "as uploaded to Sketchfab", linkOut: "sketchfab",
     credit: (row) => `"${row.title}" by ${row.authors} (${row.source_url}), ${row.license}. From Objaverse 1.0 (Allen Institute for AI); scaled and converted to GLB by CodePawl.`,
   },
   {

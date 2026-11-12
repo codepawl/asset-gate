@@ -133,6 +133,18 @@ test("Megascans comes back as a link only", async () => {
   assert.equal(asset.glb_url, undefined);
 });
 
+test("Objaverse links out to Sketchfab and serves no copy", async () => {
+  const found = await tool("search_assets", { query: "skull", sources: ["objaverse-clean-glb"], limit: 1 });
+  assert.equal(found.results[0].glb_ready, false);
+  assert.match(found.results[0].link_only, /sketchfab/);
+  const asset = await tool("get_asset", { id: found.results[0].id });
+  assert.equal(asset.link_only, true);
+  assert.match(asset.url, /^https:\/\/sketchfab\.com\//);
+  assert.equal(asset.glb_url, undefined);
+  const glbOnly = await tool("search_assets", { query: "skull", glb_only: true, limit: 50 });
+  assert.ok(glbOnly.results.every((result) => result.source !== "objaverse-clean-glb"));
+});
+
 test("unknown ids and tools fail clearly", async () => {
   const missing = await rpc("tools/call", { name: "get_asset", arguments: { id: "nope:nothing" } });
   assert.equal(missing.result.isError, true);

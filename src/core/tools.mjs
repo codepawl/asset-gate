@@ -158,6 +158,7 @@ function summarise(record, packBase) {
   if (record.rigged) summary.rigged = true;
   if (record.animated) summary.animated = true;
   if (record.licence?.startsWith("LicenseRef-Fab")) summary.link_only = "claim on Fab; no file here";
+  if (record.link_out) summary.link_only = `download from ${record.link_out.site}; no file here`;
   if (record.thumbnail) summary.thumbnail = record.pack ? packFileUrl(packBase, record.pack, record.thumbnail) : record.thumbnail;
   return summary;
 }
@@ -235,6 +236,14 @@ export function createTools({ index, gateBase = null, fetchImpl = fetch }) {
       answer.tiers = Object.fromEntries(TIER_ORDER.filter((name) => tiers[name]).map((name) => [name, tiers[name]]));
       if (Object.keys(extraFiles).length) answer.extra_files = extraFiles;
       if (record.thumbnail) answer.thumbnail = packFileUrl(manifest.pack_base, record.pack, record.thumbnail);
+      return answer;
+    }
+
+    if (record.link_out) {
+      answer.link_only = true;
+      answer.url = record.link_out.url;
+      answer.how = `Open the page and download it from ${record.link_out.site} (a free account may be needed), then use it under the licence above.`;
+      answer.why = "The gate links to the original page for this library instead of serving a copy.";
       return answer;
     }
 

@@ -23,7 +23,7 @@ const assetIndexPath = argumentList.includes("--asset-index")
 
 const BLOCK_SIZE = 20;
 const CARD_BLOCK_SIZE = 50;
-const CARD_FIELDS = ["id", "title", "source", "kind", "category", "licence", "size_m", "surface_m", "file_units", "triangles", "rigged", "animated", "pack", "thumbnail"];
+const CARD_FIELDS = ["id", "title", "source", "kind", "category", "licence", "size_m", "surface_m", "file_units", "triangles", "rigged", "animated", "pack", "thumbnail", "link_out"];
 const MAX_POSTINGS_PER_WORD = 6000;
 const READ_ON = new Date().toISOString().slice(0, 10);
 
@@ -219,7 +219,8 @@ function packRecord(pack, row, simreadyBounds) {
       break;
   }
 
-  const tiers = packTiers(pack, row);
+  // Link-out packs (Objaverse, from Sketchfab): the gate points at the original page and never serves our copy.
+  const tiers = pack.linkOut ? null : packTiers(pack, row);
   const record = {
     id: `${pack.repo}:${id}`,
     title,
@@ -238,7 +239,8 @@ function packRecord(pack, row, simreadyBounds) {
     pack: pack.repo,
     tiers,
     // ABO rows carry no thumbnail field, but the pack has one WebP per object in thumbs/.
-    thumbnail: row.thumbnail ?? row.thumb ?? (pack.repo === "abo-glb" ? `thumbs/${id}.webp` : null),
+    thumbnail: pack.linkOut ? null : row.thumbnail ?? row.thumb ?? (pack.repo === "abo-glb" ? `thumbs/${id}.webp` : null),
+    link_out: pack.linkOut ? { site: pack.linkOut, url: row.source_url } : null,
     rigged: rigged || null,
     animated: animated || null,
     ai_generated: pack.aiGenerated || null,
@@ -248,20 +250,20 @@ function packRecord(pack, row, simreadyBounds) {
   return {
     record,
     prior,
-    group: realScale && sizeMetres ? 0 : 1,
+    group: pack.linkOut ? 2 : realScale && sizeMetres ? 0 : 1,
     titleText: title,
     tagText: [category, row.kind, pack.name].filter(Boolean).join(" "),
     otherText: extraWords.filter(Boolean).join(" "),
     facts: {
       kind,
       licenceClass: licenceClass(licence),
-      glbReady: Object.keys(tiers).length > 0,
+      glbReady: Boolean(tiers) && Object.keys(tiers).length > 0,
       rigged,
       animated,
       style,
       aiGenerated: Boolean(pack.aiGenerated),
       realScale: Boolean(sizeMetres),
-      direct: true,
+      direct: !pack.linkOut,
       sizeMetres: largest(sizeMetres),
     },
   };
@@ -384,7 +386,7 @@ async function main() {
       kind: "glb pack",
       assets: rows.length,
       licences: Object.fromEntries(licences),
-      files: "GLB on Hugging Face (web, and where built: ktx2, lod1-3, mobile, engine, collision)",
+      files: pack.linkOut ? `links to each model page on ${pack.linkOut}; no file served` : "GLB on Hugging Face (web, and where built: ktx2, lod1-3, mobile, engine, collision)",
       scale: pack.realScale ? "real metres" : (pack.unitScale ?? "as authored"),
       url: `${HUGGING_FACE_BASE}/${pack.repo}`,
     });

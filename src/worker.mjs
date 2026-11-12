@@ -56,8 +56,13 @@ function json(value, status = 200, extraHeaders = {}) {
   });
 }
 
-function logToolCall(call) {
-  console.log(JSON.stringify({ event: "tool_call", tool: call.name, ok: call.ok, ms: call.milliseconds, query: call.arguments.query ?? call.arguments.id ?? null }));
+// Empty searches are logged on their own, so we can count what the library is missing (filter on empty_search).
+function logToolCall(call, via = "mcp") {
+  const query = call.arguments.query ?? call.arguments.id ?? null;
+  console.log(JSON.stringify({ event: "tool_call", via, tool: call.name, ok: call.ok, ms: call.milliseconds, query, results: call.count }));
+  if (call.name === "search_assets" && call.count === 0) {
+    console.log(JSON.stringify({ event: "empty_search", via, query, filters: { ...call.arguments, query: undefined } }));
+  }
 }
 
 async function handleMcp(request, handle) {
@@ -125,7 +130,10 @@ async function handleApi(url, tools) {
       else if (key === "sources") input[key] = value.split(",");
       else input[key] = value;
     }
-    return json(await tools.call("search_assets", input));
+    const started = Date.now();
+    const answer = await tools.call("search_assets", input);
+    logToolCall({ name: "search_assets", arguments: input, milliseconds: Date.now() - started, ok: !answer.error, count: answer.count ?? null }, "api");
+    return json(answer);
   }
   if (parts[1] === "asset" && parts[2]) {
     return json(await tools.call("get_asset", { id: decodeURIComponent(parts.slice(2).join("/")), tier: url.searchParams.get("tier") ?? undefined, resolution: url.searchParams.get("resolution") ?? undefined }));

@@ -4,7 +4,7 @@ An MCP server that lets any AI agent find free 3D assets and use them right away
 and get a GLB URL, the real size in metres, the licence and a credit line to paste into the project.
 
 - **75,598 assets** from 17 GLB packs on Hugging Face and 4 libraries.
-- **46,309 have a ready GLB**: web, KTX2, LOD, mobile, engine and collision tiers.
+- **40,294 have a ready GLB**: web, KTX2, LOD, mobile, engine and collision tiers.
 - Sizes in metres where the source knows them, and the file's units where it does not.
 - Every result names its licence. CC BY results come with a ready credit line.
 
@@ -51,7 +51,7 @@ The hosted gate also answers plain HTTP: `/api/search?q=wooden%20chair&glb_only=
 |---|---|---|---|
 | [Amazon Berkeley Objects](https://huggingface.co/datasets/codepawl/abo-glb) | 7,953 | CC BY 4.0 | GLB, real metres |
 | [Google Poly archive](https://huggingface.co/datasets/codepawl/google-poly-glb) | 9,971 | CC BY 3.0 | GLB, longest side 1 unit |
-| [Objaverse (CC0 and CC BY)](https://huggingface.co/datasets/codepawl/objaverse-clean-glb) | 6,015 | CC0 / CC BY 4.0 per model | GLB, longest side 1 unit |
+| Objaverse (CC0 and CC BY, from Sketchfab) | 6,015 | CC0 / CC BY 4.0 per model | link to the Sketchfab page only |
 | [Pixel Art Atlas 3D](https://huggingface.co/datasets/codepawl/pixel-atlas-glb) | 6,194 | CC0 | GLB |
 | [Smithsonian Open Access](https://huggingface.co/datasets/codepawl/smithsonian-3d-glb) | 3,451 | CC0 | GLB |
 | [NVIDIA SimReady](https://huggingface.co/datasets/codepawl/simready-glb) | 2,595 | CC BY 4.0 | GLB with physics, real metres |

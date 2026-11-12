@@ -48,7 +48,7 @@ export function createMcpHandler(tools, { serverName = "codepawl-asset-gate", on
         const started = Date.now();
         try {
           const output = await tools.call(name, params.arguments ?? {});
-          onToolCall?.({ name, arguments: params.arguments ?? {}, milliseconds: Date.now() - started, ok: !output?.error });
+          onToolCall?.({ name, arguments: params.arguments ?? {}, milliseconds: Date.now() - started, ok: !output?.error, count: output?.count ?? null });
           return result(message.id, {
             content: [{ type: "text", text: JSON.stringify(output) }],
             structuredContent: output,
