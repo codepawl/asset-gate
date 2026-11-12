@@ -4,68 +4,497 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Free 3D assets for agents · CodePawl</title>
-<meta name="description" content="An MCP server that lets any AI agent search {{ASSETS}} free 3D assets and get a GLB URL, real size in metres and a ready credit line.">
+<meta name="description" content="An MCP server that lets any AI agent search {{ASSETS}} free 3D assets and get a GLB URL, the real size in metres and a ready credit line.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
 <style>
   :root {
-    --background: #f7f7f5; --surface: #ffffff; --text: #17171a; --muted: #5f6068; --accent: #1f6f5c; --code: #eeeeea;
+    --background: #f6f6f3;
+    --surface: #ffffff;
+    --surface-sunken: #ecece7;
+    --text: #17171a;
+    --muted: #5d5e66;
+    --accent: #1f6f5c;
+    --accent-text: #ffffff;
+    --focus: #1f6f5c;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --background: #111113; --surface: #1a1a1d; --text: #ececef; --muted: #9a9aa3; --accent: #5cc8a8; --code: #222226; color-scheme: dark; }
+    :root {
+      --background: #111113;
+      --surface: #1b1b1e;
+      --surface-sunken: #242428;
+      --text: #ececef;
+      --muted: #9c9ca6;
+      --accent: #5cc8a8;
+      --accent-text: #0d1f1a;
+      --focus: #5cc8a8;
+      color-scheme: dark;
+    }
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--background); color: var(--text); font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { max-width: 760px; margin: 0 auto; padding: 56px 16px 72px; }
-  h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.15; margin: 0 0 16px; letter-spacing: -0.02em; }
-  h2 { font-size: 19px; margin: 44px 0 12px; }
+  main { max-width: 1080px; margin: 0 auto; padding: 56px 16px 72px; }
+  h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.1; margin: 0 0 14px; letter-spacing: -0.025em; max-width: 16ch; }
+  h2 { font-size: 20px; margin: 0 0 14px; letter-spacing: -0.01em; }
   p { margin: 0 0 14px; color: var(--muted); }
-  p strong { color: var(--text); }
-  .numbers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 28px 0 8px; }
-  .number { background: var(--surface); border-radius: 12px; padding: 16px; }
-  .number b { display: block; font-size: 26px; color: var(--text); font-variant-numeric: tabular-nums; }
-  .number span { color: var(--muted); font-size: 14px; }
-  pre { background: var(--code); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font: 13.5px/1.5 ui-monospace, "Cascadia Code", Menlo, monospace; margin: 0 0 14px; }
-  code { font-family: ui-monospace, "Cascadia Code", Menlo, monospace; font-size: 0.92em; }
-  ul { padding-left: 20px; margin: 0 0 14px; color: var(--muted); }
-  li { margin: 4px 0; }
   a { color: var(--accent); }
-  footer { margin-top: 56px; color: var(--muted); font-size: 14px; }
-  @media (max-width: 520px) { .numbers { grid-template-columns: 1fr; } }
+  code, pre { font-family: ui-monospace, "Cascadia Code", Menlo, monospace; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .chrome { user-select: none; }
+
+  .hero { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 32px; align-items: start; margin-bottom: 64px; }
+  .lead { font-size: 18px; max-width: 46ch; }
+  .facts { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 20px; color: var(--muted); font-size: 15px; }
+  .facts b { color: var(--text); font-variant-numeric: tabular-nums; }
+
+  .install { background: var(--surface); border-radius: 16px; padding: 18px; }
+  .clients { display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: 14px; }
+  .client { display: inline-flex; align-items: center; gap: 7px; border: 0; background: none; color: var(--muted); padding: 7px 8px; white-space: nowrap; border-radius: 9px; cursor: pointer; font-size: 14px; }
+  .client svg { width: 16px; height: 16px; flex: none; }
+  .client[aria-selected="true"] { color: var(--text); background: var(--surface-sunken); }
+  .client:hover { color: var(--text); }
+  .panel p { font-size: 14.5px; margin-bottom: 10px; }
+  .command { display: flex; align-items: center; gap: 8px; background: var(--surface-sunken); border-radius: 10px; padding: 6px 6px 6px 14px; margin-bottom: 10px; }
+  .command code { flex: 1; min-width: 0; font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; padding: 6px 0; }
+  .icon-button { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: 0; border-radius: 8px; background: none; color: var(--muted); cursor: pointer; }
+  .icon-button:hover { color: var(--text); background: var(--surface); }
+  .icon-button svg { width: 17px; height: 17px; }
+  .primary { display: inline-flex; align-items: center; gap: 9px; background: var(--accent); color: var(--accent-text); border-radius: 10px; padding: 10px 16px; text-decoration: none; font-weight: 600; font-size: 15px; margin-bottom: 10px; }
+  .primary svg { width: 17px; height: 17px; }
+
+  .search-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .search-field { flex: 1 1 320px; display: flex; align-items: center; gap: 10px; background: var(--surface); border-radius: 12px; padding: 0 14px; }
+  .search-field svg { width: 18px; height: 18px; color: var(--muted); flex: none; }
+  .search-field input { flex: 1; min-width: 0; border: 0; background: none; color: var(--text); font: inherit; font-size: 17px; padding: 13px 0; outline: none; }
+  .toggle { display: inline-flex; align-items: center; gap: 7px; font-size: 14.5px; color: var(--muted); cursor: pointer; padding: 6px 4px; }
+  .toggle input { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
+  .examples { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+  .example { border: 0; background: var(--surface); color: var(--muted); border-radius: 999px; padding: 5px 12px; font-size: 14px; cursor: pointer; }
+  .example:hover, .example[aria-pressed="true"] { color: var(--text); background: var(--surface-sunken); }
+  .status { font-size: 14px; color: var(--muted); min-height: 22px; margin-bottom: 10px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  .card { display: flex; flex-direction: column; text-align: left; border: 0; padding: 0; background: var(--surface); border-radius: 14px; overflow: hidden; cursor: pointer; }
+  .card:hover .thumb img { transform: scale(1.04); }
+  .thumb { aspect-ratio: 1; background: var(--surface-sunken); display: grid; place-items: center; overflow: hidden; }
+  .thumb img { width: 100%; height: 100%; object-fit: contain; transition: transform 200ms ease-out; }
+  .thumb .placeholder { color: var(--muted); font-size: 13px; padding: 12px; text-align: center; }
+  .card-body { padding: 10px 12px 12px; }
+  .card-title { font-size: 14px; line-height: 1.35; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.7em; }
+  .card-meta { font-size: 13px; color: var(--muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  section { margin-bottom: 64px; }
+  .tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .tool { background: var(--surface); border-radius: 14px; padding: 16px 18px; }
+  .tool code { font-size: 15px; font-weight: 600; color: var(--text); }
+  .tool p { margin: 6px 0 0; font-size: 14.5px; }
+  .sources { display: flex; flex-wrap: wrap; gap: 6px 8px; margin: 0; padding: 0; list-style: none; }
+  .sources li { background: var(--surface); border-radius: 999px; padding: 5px 12px; font-size: 14px; color: var(--muted); }
+  .sources a { color: inherit; text-decoration: none; }
+  .sources a:hover { color: var(--text); }
+  .sources b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+  footer { color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 18px; }
+
+  dialog { border: 0; padding: 0; border-radius: 18px; background: var(--surface); color: var(--text); width: min(980px, calc(100vw - 32px)); max-height: calc(100vh - 48px); }
+  dialog::backdrop { background: rgb(0 0 0 / 0.55); }
+  .detail { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+  .viewer { position: relative; background: var(--surface-sunken); min-height: 440px; }
+  .viewer canvas, .viewer img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
+  .viewer .loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 14px; }
+  .info { padding: 22px 22px 20px; overflow-y: auto; max-height: calc(100vh - 48px); }
+  .info h3 { margin: 0 34px 6px 0; font-size: 19px; line-height: 1.3; }
+  .info .meta { color: var(--muted); font-size: 14.5px; margin-bottom: 16px; }
+  .info .label { font-size: 14px; color: var(--muted); margin: 14px 0 6px; }
+  .credit { display: flex; gap: 8px; align-items: flex-start; background: var(--surface-sunken); border-radius: 10px; padding: 8px 6px 8px 12px; font-size: 14px; }
+  .credit span { flex: 1; padding-top: 6px; }
+  .answer { background: var(--surface-sunken); border-radius: 10px; padding: 12px 14px; font-size: 12.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; overflow-y: auto; margin: 0; max-height: 300px; }
+  .close { position: absolute; top: 12px; right: 12px; }
+
+  @media (max-width: 820px) {
+    .hero, .detail { grid-template-columns: 1fr; }
+    .tools { grid-template-columns: 1fr; }
+    .viewer { min-height: 300px; }
+    .info { max-height: none; }
+  }
 </style>
 </head>
 <body>
 <main>
-  <h1>Free 3D assets for your agent</h1>
-  <p>An MCP server. Your agent asks for "a wooden chair, 0.8 m" and gets a GLB URL, the real size in metres, the licence and a credit line it can paste into the project.</p>
+  <div class="hero">
+    <div>
+      <h1>Free 3D assets for your agent</h1>
+      <p class="lead">One MCP server. Your agent asks for "a wooden chair, 0.8 m" and gets a GLB it can load, the real size in metres, the licence and a credit line to paste.</p>
+      <div class="facts">
+        <span><b>{{ASSETS}}</b> models, materials and HDRIs</span>
+        <span><b>{{GLB}}</b> ready GLBs</span>
+        <span><b>{{SOURCES}}</b> sources</span>
+        <span>Free, no key</span>
+      </div>
+    </div>
 
-  <div class="numbers">
-    <div class="number"><b>{{ASSETS}}</b><span>assets searchable</span></div>
-    <div class="number"><b>{{GLB}}</b><span>with a ready GLB</span></div>
-    <div class="number"><b>{{SOURCES}}</b><span>libraries and packs</span></div>
+    <div class="install chrome">
+      <div class="clients" role="tablist" aria-label="Your client">
+        <button class="client" role="tab" data-client="claude-code" aria-selected="true">
+          <svg viewBox="0 0 24 24" fill="#D97757" aria-hidden="true"><use href="#claude-mark"/></svg>
+          Claude Code
+        </button>
+        <button class="client" role="tab" data-client="claude-app" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="#D97757" aria-hidden="true"><use href="#claude-mark"/></svg>
+          Claude app
+        </button>
+        <button class="client" role="tab" data-client="cursor" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg>
+          Cursor
+        </button>
+        <button class="client" role="tab" data-client="vscode" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="#007ACC" aria-hidden="true"><path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z"/></svg>
+          VS Code
+        </button>
+        <button class="client" role="tab" data-client="other" aria-selected="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 9-4 3 4 3"/><path d="m16 9 4 3-4 3"/><path d="m13.5 6-3 12"/></svg>
+          Other
+        </button>
+      </div>
+      <div class="panel" id="install-panel" role="tabpanel"></div>
+    </div>
   </div>
 
-  <h2>Add it</h2>
-  <p>Claude Code:</p>
-  <pre>claude mcp add --transport http free-3d-assets https://assets.codepawl.com/mcp</pre>
-  <p>Any client that takes a JSON config (Cursor, Claude Desktop, VS Code):</p>
-  <pre>{ "mcpServers": { "free-3d-assets": { "url": "https://assets.codepawl.com/mcp" } } }</pre>
-  <p>Or run it on your own machine, no server needed:</p>
-  <pre>claude mcp add free-3d-assets -- npx -y github:codepawl/asset-gate</pre>
+  <section aria-label="Search the library">
+    <div class="search-bar">
+      <label class="search-field">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="query" type="search" placeholder="Search like your agent would: wooden chair 0.8 m" autocomplete="off" aria-label="Search assets">
+      </label>
+      <label class="toggle chrome"><input type="checkbox" id="glb-only" checked> Ready GLB</label>
+      <label class="toggle chrome"><input type="checkbox" id="cc0-only"> CC0 only</label>
+    </div>
+    <div class="examples chrome" id="examples"></div>
+    <div class="status" id="status" aria-live="polite"></div>
+    <div class="grid" id="results"></div>
+  </section>
 
-  <h2>Tools</h2>
-  <ul>
-    <li><code>search_assets</code>: plain words plus filters for kind, licence, size, style, rigged and source.</li>
-    <li><code>get_asset</code>: GLB URL in every tier, size, licence and credit line.</li>
-    <li><code>list_sources</code>: what is searched and under which licence.</li>
-    <li><code>find_elsewhere</code>: search links for other free libraries when nothing fits.</li>
-  </ul>
+  <section>
+    <h2>Four tools</h2>
+    <div class="tools">
+      <div class="tool"><code>search_assets</code><p>Plain words plus filters for kind, licence, size, style, rigged and source. "rock 2 m" filters by size on its own.</p></div>
+      <div class="tool"><code>get_asset</code><p>The GLB URL in every tier, the decoders each needs, a three.js load snippet, the size, the licence and the credit line.</p></div>
+      <div class="tool"><code>list_sources</code><p>Every library and pack, with counts, licences and how each one is scaled.</p></div>
+      <div class="tool"><code>find_elsewhere</code><p>Search links for other free libraries when nothing here fits.</p></div>
+    </div>
+  </section>
 
-  <h2>Where the files come from</h2>
-  <p>GLB packs on Hugging Face (Amazon Berkeley Objects, NVIDIA SimReady, Google Scanned Objects, Smithsonian, NASA, Objaverse, Google Poly, PLATEAU cities, Mars terrain, robots and more), plus Poly Haven, ambientCG, Kenney and Quaternius. Megascans listings are links only: Fab licenses them to each user.</p>
-  <p>Files download straight from Hugging Face and Poly Haven. Plain JSON works too: <a href="/api/search?q=wooden%20chair&amp;glb_only=true">/api/search?q=wooden chair</a>.</p>
+  <section>
+    <h2>Where the files come from</h2>
+    <p>Files load straight from Hugging Face and Poly Haven; this server only searches and redirects. Megascans entries are links only, because Fab licenses them to each user. The same search answers as plain JSON: <a href="/api/search?q=wooden%20chair&amp;glb_only=true">/api/search?q=wooden chair</a>.</p>
+    <ul class="sources" id="sources"></ul>
+  </section>
 
-  <footer>Made by <a href="https://x.com/anxuanng">@anxuanng</a> · <a href="https://github.com/codepawl/asset-gate">GitHub</a> · <a href="https://huggingface.co/codepawl">Hugging Face</a></footer>
+  <footer>
+    <span>Made by <a href="https://x.com/anxuanng">@anxuanng</a></span>
+    <a href="https://github.com/codepawl/asset-gate">GitHub</a>
+    <a href="https://huggingface.co/codepawl">Hugging Face</a>
+  </footer>
 </main>
+
+<dialog id="detail" aria-labelledby="detail-title">
+  <div class="detail">
+    <div class="viewer" id="viewer"></div>
+    <div class="info">
+      <h3 id="detail-title"></h3>
+      <div class="meta" id="detail-meta"></div>
+      <div class="label">Credit line</div>
+      <div class="credit"><span id="detail-credit"></span><button class="icon-button chrome" id="copy-credit" aria-label="Copy credit line"></button></div>
+      <div class="label">What your agent gets from <code>get_asset</code></div>
+      <pre class="answer" id="detail-answer"></pre>
+    </div>
+  </div>
+  <button class="icon-button close chrome" id="close-detail" aria-label="Close">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+  </button>
+</dialog>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="claude-mark" viewBox="0 0 24 24"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></symbol>
+</svg>
+
+<script type="module">
+const SERVER_URL = `${location.origin}/mcp`;
+const SERVER_NAME = "free-3d-assets";
+const COPY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></svg>';
+const CHECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
+const EXAMPLES = ["armchair", "oak tree", "robot arm", "lantern", "fish", "rock 2 m", "sports car", "brick wall"];
+const LICENCE_LABELS = { "CC0-1.0": "CC0", "public-domain": "Public domain", "CC-BY-4.0": "CC BY 4.0", "CC-BY-3.0": "CC BY 3.0", "CC-BY-SA-3.0": "CC BY-SA 3.0", "LicenseRef-Fab-Standard": "Fab, link only" };
+
+function escapeHtml(text) {
+  return String(text ?? "").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character]));
+}
+
+function commandBlock(text) {
+  return `<div class="command"><code>${escapeHtml(text)}</code><button class="icon-button" data-copy="${escapeHtml(text)}" aria-label="Copy">${COPY_ICON}</button></div>`;
+}
+
+const INSTALL_PANELS = {
+  "claude-code": () => `<p>Run this once in a terminal:</p>${commandBlock(`claude mcp add --transport http ${SERVER_NAME} ${SERVER_URL}`)}<p>Then ask Claude for a scene; it finds and loads the assets itself.</p>`,
+  "claude-app": () => `<p>In Claude on the web or desktop, open Settings, then Connectors, then Add custom connector, and paste:</p>${commandBlock(SERVER_URL)}`,
+  "cursor": () => {
+    const config = btoa(JSON.stringify({ url: SERVER_URL }));
+    const link = `cursor://anysphere.cursor-deeplink/mcp/install?name=${SERVER_NAME}&config=${encodeURIComponent(config)}`;
+    return `<a class="primary" href="${link}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg>Add to Cursor</a><p>Or add it to <code>~/.cursor/mcp.json</code>:</p>${commandBlock(JSON.stringify({ mcpServers: { [SERVER_NAME]: { url: SERVER_URL } } }))}`;
+  },
+  "vscode": () => {
+    const entry = { name: SERVER_NAME, type: "http", url: SERVER_URL };
+    const link = `vscode:mcp/install?${encodeURIComponent(JSON.stringify(entry))}`;
+    return `<a class="primary" href="${link}"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.15 2.587L18.21.21a1.494 1.494 0 0 0-1.705.29l-9.46 8.63-4.12-3.128a.999.999 0 0 0-1.276.057L.327 7.261A1 1 0 0 0 .326 8.74L3.899 12 .326 15.26a1 1 0 0 0 .001 1.479L1.65 17.94a.999.999 0 0 0 1.276.057l4.12-3.128 9.46 8.63a1.492 1.492 0 0 0 1.704.29l4.942-2.377A1.5 1.5 0 0 0 24 20.06V3.939a1.5 1.5 0 0 0-.85-1.352zm-5.146 14.861L10.826 12l7.178-5.448v10.896z"/></svg>Add to VS Code</a><p>Or from a terminal:</p>${commandBlock(`code --add-mcp '${JSON.stringify(entry)}'`)}`;
+  },
+  "other": () => `<p>Any client that takes a remote MCP URL:</p>${commandBlock(JSON.stringify({ mcpServers: { [SERVER_NAME]: { url: SERVER_URL } } }))}<p>Or run it on your own machine over stdio, reading the same index from Hugging Face:</p>${commandBlock("npx -y github:codepawl/asset-gate")}`,
+};
+
+async function copyText(button, text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    button.innerHTML = CHECK_ICON;
+    setTimeout(() => { button.innerHTML = COPY_ICON; }, 1400);
+  } catch {
+    button.title = "Copy failed; select the text instead";
+  }
+}
+
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-copy]");
+  if (button) copyText(button, button.dataset.copy);
+});
+
+const installPanel = document.getElementById("install-panel");
+function showClient(client) {
+  for (const tab of document.querySelectorAll(".client")) tab.setAttribute("aria-selected", String(tab.dataset.client === client));
+  installPanel.innerHTML = INSTALL_PANELS[client]();
+}
+for (const tab of document.querySelectorAll(".client")) tab.addEventListener("click", () => showClient(tab.dataset.client));
+showClient("claude-code");
+
+// ---------- search ----------
+
+const queryInput = document.getElementById("query");
+const glbOnly = document.getElementById("glb-only");
+const cc0Only = document.getElementById("cc0-only");
+const results = document.getElementById("results");
+const statusLine = document.getElementById("status");
+const examples = document.getElementById("examples");
+let searchNumber = 0;
+let debounceTimer = null;
+
+for (const example of EXAMPLES) {
+  const button = document.createElement("button");
+  button.className = "example";
+  button.textContent = example;
+  button.setAttribute("aria-pressed", "false");
+  button.addEventListener("click", () => { queryInput.value = example; runSearch(); });
+  examples.append(button);
+}
+
+function largestSide(size) {
+  return size ? Math.max(...size) : null;
+}
+
+function sizeLabel(result) {
+  const largest = largestSide(result.size_m);
+  if (largest) return largest >= 1 ? `${largest.toFixed(largest >= 10 ? 0 : 1)} m` : `${Math.round(largest * 100)} cm`;
+  if (result.surface_m) return `${result.surface_m.join(" × ")} m surface`;
+  return null;
+}
+
+function cardHtml(result, position) {
+  const picture = result.thumbnail
+    ? `<img src="${escapeHtml(result.thumbnail)}" alt="" loading="lazy" decoding="async">`
+    : `<span class="placeholder">${escapeHtml(result.kind)}</span>`;
+  const meta = [sizeLabel(result), LICENCE_LABELS[result.licence] ?? result.licence].filter(Boolean).join(" · ");
+  return `<button class="card" data-position="${position}"><div class="thumb">${picture}</div><div class="card-body"><div class="card-title">${escapeHtml(result.title)}</div><div class="card-meta">${escapeHtml(meta)}</div></div></button>`;
+}
+
+let currentResults = [];
+
+async function runSearch() {
+  const query = queryInput.value.trim();
+  for (const button of examples.children) button.setAttribute("aria-pressed", String(button.textContent === query));
+  const parameters = new URLSearchParams({ q: query, limit: "24" });
+  if (glbOnly.checked) parameters.set("glb_only", "true");
+  if (cc0Only.checked) parameters.set("licence", "cc0");
+  const thisSearch = ++searchNumber;
+  const started = performance.now();
+  statusLine.textContent = "Searching…";
+  try {
+    const response = await fetch(`/api/search?${parameters}`);
+    const answer = await response.json();
+    if (thisSearch !== searchNumber) return;
+    if (answer.error) throw new Error(answer.error);
+    currentResults = answer.results;
+    const milliseconds = Math.round(performance.now() - started);
+    statusLine.textContent = answer.count ? `${answer.count} shown · ${milliseconds} ms` : "Nothing here. Your agent would call find_elsewhere next.";
+    results.innerHTML = answer.results.map(cardHtml).join("");
+  } catch (error) {
+    if (thisSearch !== searchNumber) return;
+    statusLine.textContent = `Search failed: ${error.message}`;
+  }
+}
+
+queryInput.addEventListener("input", () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(runSearch, 220);
+});
+glbOnly.addEventListener("change", runSearch);
+cc0Only.addEventListener("change", runSearch);
+results.addEventListener("click", (event) => {
+  const card = event.target.closest(".card");
+  if (card) openDetail(currentResults[Number(card.dataset.position)]);
+});
+
+queryInput.value = new URLSearchParams(location.search).get("q") ?? EXAMPLES[0];
+runSearch();
+
+// ---------- sources ----------
+
+fetch("/api/sources").then((response) => response.json()).then((answer) => {
+  const list = document.getElementById("sources");
+  list.innerHTML = answer.sources
+    .slice()
+    .sort((left, right) => right.assets - left.assets)
+    .map((source) => {
+      const label = `${escapeHtml(source.name ?? source.source)} <b>${Number(source.assets).toLocaleString("en-US")}</b>`;
+      return source.url ? `<li><a href="${escapeHtml(source.url)}">${label}</a></li>` : `<li>${label}</li>`;
+    })
+    .join("");
+}).catch(() => {});
+
+// ---------- detail dialog with a live 3D preview ----------
+
+const dialog = document.getElementById("detail");
+const viewer = document.getElementById("viewer");
+const copyCreditButton = document.getElementById("copy-credit");
+copyCreditButton.innerHTML = COPY_ICON;
+document.getElementById("close-detail").addEventListener("click", () => dialog.close());
+dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
+dialog.addEventListener("close", () => stopPreview());
+
+let preview = null;
+
+function stopPreview() {
+  if (!preview) return;
+  preview.stop();
+  preview = null;
+}
+
+function agentView(asset) {
+  const keep = ["id", "glb_url", "gltf_url", "hdri_url", "tier", "needs", "size_m", "file_units", "licence", "credit", "url", "link_only"];
+  const view = {};
+  for (const key of keep) if (asset[key] !== undefined && asset[key] !== null) view[key] = asset[key];
+  // Keep short arrays on one line so the answer reads like a record, not a column of numbers.
+  return JSON.stringify(view, null, 2).replace(/\[\s+([^\[\]{}]*?)\s+\]/g, (match, inside) => `[${inside.replace(/\s*\n\s*/g, " ")}]`);
+}
+
+async function openDetail(result) {
+  stopPreview();
+  document.getElementById("detail-title").textContent = result.title;
+  document.getElementById("detail-meta").textContent = [sizeLabel(result), LICENCE_LABELS[result.licence] ?? result.licence, result.source].filter(Boolean).join(" · ");
+  document.getElementById("detail-credit").textContent = "…";
+  document.getElementById("detail-answer").textContent = "…";
+  viewer.innerHTML = result.thumbnail ? `<img src="${escapeHtml(result.thumbnail)}" alt="">` : "";
+  dialog.showModal();
+
+  const response = await fetch(`/api/asset/${encodeURIComponent(result.id)}`);
+  const asset = await response.json();
+  const credit = asset.credit ?? "No credit needed.";
+  document.getElementById("detail-credit").textContent = credit;
+  copyCreditButton.dataset.copy = credit;
+  document.getElementById("detail-answer").textContent = agentView(asset);
+  const modelUrl = asset.glb_url ?? asset.gltf_url;
+  if (modelUrl && dialog.open) startPreview(modelUrl, asset.needs ?? []);
+}
+
+async function startPreview(url, needs) {
+  const loadingNote = document.createElement("div");
+  loadingNote.className = "loading";
+  loadingNote.textContent = "Loading the 3D file…";
+  viewer.append(loadingNote);
+  const THREE = await import("three");
+  const { GLTFLoader } = await import("three/addons/loaders/GLTFLoader.js");
+  const { OrbitControls } = await import("three/addons/controls/OrbitControls.js");
+  const { RoomEnvironment } = await import("three/addons/environments/RoomEnvironment.js");
+  const { MeshoptDecoder } = await import("three/addons/libs/meshopt_decoder.module.js");
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  const scene = new THREE.Scene();
+  const environment = new THREE.PMREMGenerator(renderer);
+  scene.environment = environment.fromScene(new RoomEnvironment(), 0.04).texture;
+  const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 1000);
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.autoRotate = true;
+  controls.autoRotateSpeed = 1.6;
+  controls.enableDamping = true;
+
+  const loader = new GLTFLoader();
+  loader.setMeshoptDecoder(MeshoptDecoder);
+  if (needs.includes("DRACOLoader")) {
+    const { DRACOLoader } = await import("three/addons/loaders/DRACOLoader.js");
+    const draco = new DRACOLoader();
+    draco.setDecoderPath("https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/libs/draco/gltf/");
+    loader.setDRACOLoader(draco);
+  }
+  if (needs.includes("KTX2Loader")) {
+    const { KTX2Loader } = await import("three/addons/loaders/KTX2Loader.js");
+    const ktx2 = new KTX2Loader();
+    ktx2.setTranscoderPath("https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/libs/basis/");
+    ktx2.detectSupport(renderer);
+    loader.setKTX2Loader(ktx2);
+  }
+
+  let running = true;
+  const thisPreview = { stop() { running = false; renderer.dispose(); renderer.domElement.remove(); } };
+  preview = thisPreview;
+
+  loader.load(url, (gltf) => {
+    if (preview !== thisPreview) return;
+    const model = gltf.scene;
+    const box = new THREE.Box3().setFromObject(model);
+    const centre = box.getCenter(new THREE.Vector3());
+    const radius = box.getSize(new THREE.Vector3()).length() / 2 || 1;
+    model.position.sub(centre);
+    scene.add(model);
+    // At 35 degrees of view the bounding sphere fits with margin from about 3.4 radii away.
+    camera.position.set(radius * 1.9, radius * 1.1, radius * 2.6);
+    camera.near = radius / 100;
+    camera.far = radius * 100;
+    camera.updateProjectionMatrix();
+    controls.target.set(0, 0, 0);
+    viewer.innerHTML = "";
+    viewer.append(renderer.domElement);
+    resize();
+    renderer.setAnimationLoop(() => {
+      if (!running) { renderer.setAnimationLoop(null); return; }
+      controls.update();
+      renderer.render(scene, camera);
+    });
+  }, undefined, () => {
+    if (preview === thisPreview) loadingNote.textContent = "Could not load the preview; the file URL still works for your agent.";
+  });
+
+  function resize() {
+    const width = viewer.clientWidth;
+    const height = viewer.clientHeight;
+    renderer.setSize(width, height, false);
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(() => { if (running) resize(); }).observe(viewer);
+}
+</script>
 </body>
 </html>

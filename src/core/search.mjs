@@ -1,10 +1,22 @@
 // Search over the sharded index. `store` reads index files by path: `store.json(path)` and `store.bytes(path)`.
 // The Worker reads them from its static assets, the local server from Hugging Face with a disk cache.
 
-import { bucketOf, queryWords, sizeFromQuery } from "./text.mjs";
+import { bucketOf, queryWords, sizeFromQuery, words } from "./text.mjs";
 import { KINDS, readFacets, sizeBucket } from "./facets.mjs";
 
 const SIZE_BUCKETS_PER_DOUBLING = 6;
+const RERANK_FACTOR = 3;
+
+// How well the asset is the thing asked for, not just a mention of it:
+// 2 per query word in its category, 1 more if its title is short (the word is likely the subject).
+function subjectScore(card, tokens) {
+  const category = new Set(words(card.category));
+  let score = 0;
+  for (const token of tokens) if (category.has(token)) score += 2;
+  const titleLength = words(card.title).length;
+  if (titleLength > 0 && titleLength <= 6) score += 1;
+  return score;
+}
 
 export class AssetIndex {
   constructor(store) {
@@ -90,10 +102,20 @@ export class AssetIndex {
       }
       // More query words matched wins, then word weight, then the asset's place in the build order.
       ranked.sort((left, right) => right.matched - left.matched || right.score - left.score || left.number - right.number);
-      picked.push(...ranked.slice(0, limit));
+      const shortlist = ranked.slice(0, Math.min(ranked.length, limit * RERANK_FACTOR));
+      const cards = await this.documents(shortlist.map((candidate) => candidate.number), "cards");
+      shortlist.forEach((candidate, position) => {
+        candidate.card = cards[position];
+        candidate.subject = subjectScore(cards[position], tokens);
+      });
+      // "wooden chair" should give chairs before a dining set whose title mentions chairs.
+      shortlist.sort((left, right) => right.matched - left.matched || right.subject - left.subject || right.score - left.score || left.number - right.number);
+      picked.push(...shortlist.slice(0, limit));
     }
 
-    const records = await this.documents(picked.map((candidate) => candidate.number), "cards");
+    const records = picked.every((candidate) => candidate.card)
+      ? picked.map((candidate) => candidate.card)
+      : await this.documents(picked.map((candidate) => candidate.number), "cards");
     return {
       matched_words: tokens,
       results: records.map((record, index) => ({ record, matched: picked[index].matched, query_words: tokens.length })),

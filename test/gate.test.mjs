@@ -47,6 +47,18 @@ test("search finds chairs with a real size and respects the size filter", async 
   }
 });
 
+test("the asked-for thing ranks above things that only mention it", async () => {
+  const found = await tool("search_assets", { query: "wooden chair", limit: 3 });
+  for (const result of found.results) assert.match(result.category ?? "", /chair/, result.title);
+});
+
+test("search results carry a thumbnail for ABO and ambientCG", async () => {
+  const abo = await tool("search_assets", { query: "armchair", sources: ["abo-glb"], limit: 1 });
+  assert.match(abo.results[0].thumbnail, /abo-glb\/resolve\/main\/thumbs\/.+\.webp$/);
+  const ambient = await tool("search_assets", { query: "wood", sources: ["ambientcg"], limit: 1 });
+  assert.match(ambient.results[0].thumbnail, /^https:\/\/acg-media\..+\.png$/);
+});
+
 test("licence filters hold for every result", async () => {
   const cc0 = await tool("search_assets", { query: "rock", licence: "cc0", limit: 50 });
   assert.ok(cc0.count > 0);

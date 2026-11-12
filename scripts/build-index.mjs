@@ -210,7 +210,8 @@ function packRecord(pack, row, simreadyBounds) {
     triangles: row.triangles ?? null,
     pack: pack.repo,
     tiers,
-    thumbnail: row.thumbnail ?? row.thumb ?? null,
+    // ABO rows carry no thumbnail field, but the pack has one WebP per object in thumbs/.
+    thumbnail: row.thumbnail ?? row.thumb ?? (pack.repo === "abo-glb" ? `thumbs/${id}.webp` : null),
     rigged: rigged || null,
     animated: animated || null,
     ai_generated: pack.aiGenerated || null,
@@ -246,6 +247,12 @@ const LIBRARY_CREDITS = {
   quaternius: "Quaternius (quaternius.com), CC0",
 };
 
+// ambientCG serves a preview for every asset id at a fixed path (seen in its v2 API previewData, 2026-11-12).
+function libraryThumbnail(row) {
+  if (row.source === "ambientcg") return `https://acg-media.struffelproductions.com/file/ambientCG-Web/media/thumbnail/256-PNG/${row.source_id}.png`;
+  return null;
+}
+
 function libraryRecord(row) {
   const get = parseMaybe(row.get) ?? {};
   const licence = normaliseLicence(row.licence);
@@ -277,7 +284,7 @@ function libraryRecord(row) {
     file_units: row.model_size_units ? `file units, not metres: ${row.model_size_units.join(" x ")}` : (sizeMetres ? "metres" : null),
     triangles: row.triangles ?? null,
     get,
-    thumbnail: row.preview_url ?? null,
+    thumbnail: row.preview_url ?? libraryThumbnail(row),
     collection: row.collection ?? null,
     rigged: row.rigged || null,
     animated: row.animated || null,

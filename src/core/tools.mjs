@@ -3,7 +3,7 @@
 import { KINDS } from "./facets.mjs";
 import { outsideSources } from "./elsewhere.mjs";
 
-export const VERSION = "0.1.0";
+export const VERSION = "0.2.0";
 export const USER_AGENT = `codepawl-asset-gate/${VERSION} (+https://github.com/codepawl/asset-gate)`;
 const TIER_ORDER = ["web", "ktx2", "mobile", "lod1", "lod2", "lod3", "engine", "collision"];
 const TIER_NOTES = {
