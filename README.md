@@ -36,9 +36,11 @@ direct Hugging Face URLs.
 | Tool | Does |
 |---|---|
 | `search_assets` | Plain words plus filters: `kind`, `licence` (`cc0`, `shippable`), `no_share_alike`, `glb_only`, `size_m` or `min_size_m`/`max_size_m`, `real_size_only`, `style`, `rigged`, `animated`, `no_ai_generated`, `sources`. A size in the words ("rock 2 m") becomes a size filter. |
-| `get_asset` | GLB URL in the tier you pick (default `engine`, a plain GLB any loader opens), every other tier, size, licence, licence URL, author and credit line. Poly Haven assets give glTF, HDRI or texture URLs; Megascans gives a Fab link only. |
+| `get_asset` | GLB URL, every tier with the decoders it needs (`MeshoptDecoder`, `KTX2Loader`, measured per pack), a three.js load snippet, size, licence, licence URL, author and credit line. The default tier is the one that needs the fewest decoders. Poly Haven assets give glTF, HDRI or texture URLs; Megascans gives a Fab link only. |
 | `list_sources` | Every pack and library with counts, licences and scale. |
 | `find_elsewhere` | Search links for Poly Haven, ambientCG, Poly Pizza, Sketchfab, Smithsonian, NASA, Kenney, OpenGameArt and Fab when nothing fits. |
+
+[examples/reading-corner](examples/reading-corner) is a three.js scene that an agent built with these tools alone.
 
 The hosted gate also answers plain HTTP: `/api/search?q=wooden%20chair&glb_only=true`, `/api/asset/<id>`,
 `/api/sources`, `/api/elsewhere?q=`.
@@ -76,14 +78,16 @@ source are in [RESEARCH.md](RESEARCH.md).
 `scripts/build-index.mjs` turns every pack's `metadata.jsonl` and the
 [asset-index](https://huggingface.co/datasets/codepawl/asset-index) table into a sharded index: asset records in blocks
 of 100, word postings in 1,024 buckets and one 32-bit number of facets per asset. A search reads the buckets for its
-words and the blocks of its top results, about 100 KB, so it fits a free Cloudflare Worker's CPU budget. GLB links are
+words and the small card blocks of its top results, so an MCP call takes about 2 ms of Worker CPU (median, measured
+on 2026-11-12). GLB links are
 302 redirects to Hugging Face; nothing is proxied.
 
 ```bash
 npm run fetch      # download the metadata
 npm run build      # build dist/site (index + landing page)
-npm test           # 11 tests over the built index
-node scripts/check-urls.mjs   # HEAD a few files of every source and tier
+npm run probe      # read the glTF extensions each pack tier requires
+npm test           # tests over the built index
+npm run check-urls # HEAD a few files of every source and tier
 npm run deploy     # Cloudflare Worker
 ```
 

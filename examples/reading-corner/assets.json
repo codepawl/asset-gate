@@ -1,0 +1,45 @@
+[
+  {
+    "id": "abo-glb:B0714QGLSD",
+    "url": "https://assets.codepawl.com/f/abo-glb/B0714QGLSD/web.glb",
+    "size_m": [0.8454, 0.9679, 0.9421],
+    "credit": "Amazon Berkeley Objects by Amazon.com (amazon-berkeley-objects.s3.amazonaws.com), CC BY 4.0. Converted to GLB by CodePawl."
+  },
+  {
+    "id": "abo-glb:B07374C6R9",
+    "url": "https://assets.codepawl.com/f/abo-glb/B07374C6R9/web.glb",
+    "size_m": [0.4198, 1.475, 0.4198],
+    "credit": "Amazon Berkeley Objects by Amazon.com (amazon-berkeley-objects.s3.amazonaws.com), CC BY 4.0. Converted to GLB by CodePawl."
+  },
+  {
+    "id": "abo-glb:B072ZK887F",
+    "url": "https://assets.codepawl.com/f/abo-glb/B072ZK887F/web.glb",
+    "size_m": [0.4003, 0.6232, 0.3998],
+    "credit": "Amazon Berkeley Objects by Amazon.com (amazon-berkeley-objects.s3.amazonaws.com), CC BY 4.0. Converted to GLB by CodePawl."
+  },
+  {
+    "id": "abo-glb:B07PQQRST8",
+    "url": "https://assets.codepawl.com/f/abo-glb/B07PQQRST8/web.glb",
+    "size_m": [0.77, 1.5, 0.35],
+    "credit": "Amazon Berkeley Objects by Amazon.com (amazon-berkeley-objects.s3.amazonaws.com), CC BY 4.0. Converted to GLB by CodePawl."
+  },
+  {
+    "id": "objaverse-clean-glb:persian-tabriz-pictorial-carpet-0ce2fc1e",
+    "url": "https://assets.codepawl.com/f/objaverse-clean-glb/persian-tabriz-pictorial-carpet-0ce2fc1e/engine.glb",
+    "size_m": null,
+    "size_note": "longest side 1 unit; scaled to 2.4 m longest side in the scene",
+    "credit": "\"Persian Tabriz Pictorial Carpet\" by mfb64 (https://sketchfab.com/3d-models/0ce2fc1e54724cb79cbb08ab2182760a), CC-BY-4.0. From Objaverse 1.0 (Allen Institute for AI); scaled and converted to GLB by CodePawl."
+  },
+  {
+    "id": "abo-glb:B075HR7LHQ",
+    "url": "https://assets.codepawl.com/f/abo-glb/B075HR7LHQ/web.glb",
+    "size_m": [0.1603, 0.1555, 0.1603],
+    "credit": "Amazon Berkeley Objects by Amazon.com (amazon-berkeley-objects.s3.amazonaws.com), CC BY 4.0. Converted to GLB by CodePawl."
+  },
+  {
+    "id": "polyhaven:pine_attic",
+    "url": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/pine_attic_1k.hdr",
+    "size_m": null,
+    "credit": "Pine Attic from Poly Haven (polyhaven.com), CC0. Powered by Poly Haven."
+  }
+]
