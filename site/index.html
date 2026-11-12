@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Free 3D assets for agents · CodePawl</title>
+<meta name="description" content="An MCP server that lets any AI agent search {{ASSETS}} free 3D assets and get a GLB URL, real size in metres and a ready credit line.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --background: #f7f7f5; --surface: #ffffff; --text: #17171a; --muted: #5f6068; --accent: #1f6f5c; --code: #eeeeea;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --background: #111113; --surface: #1a1a1d; --text: #ececef; --muted: #9a9aa3; --accent: #5cc8a8; --code: #222226; color-scheme: dark; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--background); color: var(--text); font: 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 56px 16px 72px; }
+  h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.15; margin: 0 0 16px; letter-spacing: -0.02em; }
+  h2 { font-size: 19px; margin: 44px 0 12px; }
+  p { margin: 0 0 14px; color: var(--muted); }
+  p strong { color: var(--text); }
+  .numbers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 28px 0 8px; }
+  .number { background: var(--surface); border-radius: 12px; padding: 16px; }
+  .number b { display: block; font-size: 26px; color: var(--text); font-variant-numeric: tabular-nums; }
+  .number span { color: var(--muted); font-size: 14px; }
+  pre { background: var(--code); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font: 13.5px/1.5 ui-monospace, "Cascadia Code", Menlo, monospace; margin: 0 0 14px; }
+  code { font-family: ui-monospace, "Cascadia Code", Menlo, monospace; font-size: 0.92em; }
+  ul { padding-left: 20px; margin: 0 0 14px; color: var(--muted); }
+  li { margin: 4px 0; }
+  a { color: var(--accent); }
+  footer { margin-top: 56px; color: var(--muted); font-size: 14px; }
+  @media (max-width: 520px) { .numbers { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Free 3D assets for your agent</h1>
+  <p>An MCP server. Your agent asks for "a wooden chair, 0.8 m" and gets a GLB URL, the real size in metres, the licence and a credit line it can paste into the project.</p>
+
+  <div class="numbers">
+    <div class="number"><b>{{ASSETS}}</b><span>assets searchable</span></div>
+    <div class="number"><b>{{GLB}}</b><span>with a ready GLB</span></div>
+    <div class="number"><b>{{SOURCES}}</b><span>libraries and packs</span></div>
+  </div>
+
+  <h2>Add it</h2>
+  <p>Claude Code:</p>
+  <pre>claude mcp add --transport http free-3d-assets https://assets.codepawl.com/mcp</pre>
+  <p>Any client that takes a JSON config (Cursor, Claude Desktop, VS Code):</p>
+  <pre>{ "mcpServers": { "free-3d-assets": { "url": "https://assets.codepawl.com/mcp" } } }</pre>
+  <p>Or run it on your own machine, no server needed:</p>
+  <pre>claude mcp add free-3d-assets -- npx -y github:codepawl/asset-gate</pre>
+
+  <h2>Tools</h2>
+  <ul>
+    <li><code>search_assets</code>: plain words plus filters for kind, licence, size, style, rigged and source.</li>
+    <li><code>get_asset</code>: GLB URL in every tier, size, licence and credit line.</li>
+    <li><code>list_sources</code>: what is searched and under which licence.</li>
+    <li><code>find_elsewhere</code>: search links for other free libraries when nothing fits.</li>
+  </ul>
+
+  <h2>Where the files come from</h2>
+  <p>GLB packs on Hugging Face (Amazon Berkeley Objects, NVIDIA SimReady, Google Scanned Objects, Smithsonian, NASA, Objaverse, Google Poly, PLATEAU cities, Mars terrain, robots and more), plus Poly Haven, ambientCG, Kenney and Quaternius. Megascans listings are links only: Fab licenses them to each user.</p>
+  <p>Files download straight from Hugging Face and Poly Haven. Plain JSON works too: <a href="/api/search?q=wooden%20chair&amp;glb_only=true">/api/search?q=wooden chair</a>.</p>
+
+  <footer>Made by <a href="https://x.com/anxuanng">@anxuanng</a> · <a href="https://github.com/codepawl/asset-gate">GitHub</a> · <a href="https://huggingface.co/codepawl">Hugging Face</a></footer>
+</main>
+</body>
+</html>

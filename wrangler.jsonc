@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "asset-gate",
+  "main": "src/worker.mjs",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "dist/site",
+    "binding": "ASSETS",
+    "run_worker_first": ["/mcp", "/mcp/", "/f/*", "/polyhaven/*", "/api/*"]
+  },
+  "routes": [{ "pattern": "assets.codepawl.com", "custom_domain": true }],
+  "observability": { "enabled": true }
+}
