@@ -90,6 +90,16 @@ function packTiers(pack, row) {
   return tiers;
 }
 
+const measuredBoundsByPack = new Map();
+
+function measuredBounds(pack) {
+  if (!measuredBoundsByPack.has(pack)) {
+    const path = join(projectFolder, "cache", "bounds", `${pack}.json`);
+    measuredBoundsByPack.set(pack, existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : {});
+  }
+  return measuredBoundsByPack.get(pack);
+}
+
 function packRecord(pack, row, simreadyBounds) {
   const id = row.id ?? row.asset ?? row.name ?? row.scan;
   const title = row.title ?? row.name ?? row.asset ?? id;
@@ -136,6 +146,8 @@ function packRecord(pack, row, simreadyBounds) {
       extraWords.push("mars", "terrain", row.site_name, row.mission, row.rationale);
       break;
     case "menagerie-glb":
+      // Measured from the GLB by scripts/measure-bounds.mjs; Menagerie models are in metres.
+      sizeMetres = roundSize(measuredBounds("menagerie-glb")[row.name]);
       category = `robot ${row.kind}`;
       rigged = row.joints > 0;
       extraWords.push("robot", row.kind, row.menagerie_model);

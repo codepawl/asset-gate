@@ -20,6 +20,7 @@
     "fetch": "bash scripts/fetch-sources.sh",
     "build": "node scripts/build-index.mjs",
     "probe": "node scripts/probe-tiers.mjs",
+    "measure": "node scripts/measure-bounds.mjs menagerie-glb",
     "test": "node --test \"test/*.test.mjs\"",
     "check-urls": "node scripts/check-urls.mjs",
     "dev": "wrangler dev",

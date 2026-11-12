@@ -32,9 +32,28 @@ export function words(text) {
     .map(stem);
 }
 
+// Two-word names that the libraries call by another word. Matched on the cut words, before synonyms.
+const PHRASES = {
+  "robot dog": "quadruped robot",
+  "robotic dog": "quadruped robot",
+  "robot hand": "end effector robot",
+  "robot gripper": "end effector robot",
+  "humanoid robot": "humanoid robot",
+};
+
+function expandPhrases(cutWords) {
+  const joined = cutWords.join(" ");
+  let expanded = joined;
+  for (const [phrase, replacement] of Object.entries(PHRASES)) {
+    const phraseWords = words(phrase).join(" ");
+    if (expanded.includes(phraseWords)) expanded = expanded.replace(phraseWords, words(replacement).join(" "));
+  }
+  return expanded === joined ? cutWords : expanded.split(" ");
+}
+
 export function queryWords(text) {
   const found = [];
-  for (const word of words(text)) {
+  for (const word of expandPhrases(words(text))) {
     const mapped = SYNONYMS[word] ?? word;
     if (!found.includes(mapped)) found.push(mapped);
   }

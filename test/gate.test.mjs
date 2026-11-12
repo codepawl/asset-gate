@@ -52,6 +52,15 @@ test("the asked-for thing ranks above things that only mention it", async () => 
   for (const result of found.results) assert.match(result.category ?? "", /chair/, result.title);
 });
 
+test("everyday names find the library's word, and robots carry a measured size", async () => {
+  assert.deepEqual(queryWords("robot dog"), ["quadruped", "robot"]);
+  const found = await tool("search_assets", { query: "robot dog", limit: 3 });
+  for (const result of found.results) {
+    assert.equal(result.source, "menagerie-glb", result.title);
+    assert.equal(result.size_m.length, 3);
+  }
+});
+
 test("search results carry a thumbnail for ABO and ambientCG", async () => {
   const abo = await tool("search_assets", { query: "armchair", sources: ["abo-glb"], limit: 1 });
   assert.match(abo.results[0].thumbnail, /abo-glb\/resolve\/main\/thumbs\/.+\.webp$/);

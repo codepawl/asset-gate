@@ -5,6 +5,7 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createLocalServer } from "../src/stdio.mjs";
+import { readGlbJson } from "./glb-json.mjs";
 
 const projectFolder = join(dirname(fileURLToPath(import.meta.url)), "..");
 const { index } = createLocalServer(join(projectFolder, "dist", "site", "index", "v1"));
@@ -12,19 +13,8 @@ const manifest = await index.manifest();
 const facets = await index.facets();
 
 async function requiredExtensions(url) {
-  let size = 65536;
-  for (;;) {
-    const response = await fetch(url, { headers: { Range: `bytes=0-${size - 1}` } });
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-    if (view.getUint32(0, true) !== 0x46546c67) throw new Error(`not a GLB: ${url}`);
-    const jsonLength = view.getUint32(12, true);
-    if (bytes.length >= 20 + jsonLength) {
-      const json = JSON.parse(new TextDecoder().decode(bytes.subarray(20, 20 + jsonLength)));
-      return json.extensionsRequired ?? [];
-    }
-    size = 20 + jsonLength;
-  }
+  const json = await readGlbJson(url);
+  return json.extensionsRequired ?? [];
 }
 
 const firstBySource = new Map();
