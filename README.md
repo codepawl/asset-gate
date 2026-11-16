@@ -1,4 +1,13 @@
-# Free 3D assets for AI agents (MCP)
+<p align="center">
+  <a href="https://codepawl.com">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/codepawl/.github/main/brand/codepawl-lockup-dark.png">
+      <img alt="CodePawl" src="https://raw.githubusercontent.com/codepawl/.github/main/brand/codepawl-lockup.png" width="200">
+    </picture>
+  </a>
+</p>
+
+<h1 align="center">Free 3D assets for AI agents (MCP)</h1>
 
 An MCP server that lets any AI agent find free 3D assets and use them right away. Ask for "a wooden chair, 0.8 m"
 and get a GLB URL, the real size in metres, the licence and a credit line to paste into the project.
@@ -116,3 +125,18 @@ npm run deploy     # Cloudflare Worker
 
 Poly Haven content comes through the Poly Haven API: Powered by Poly Haven. Each asset keeps its own licence; use the
 credit line `get_asset` returns. Code: MIT.
+
+<br>
+
+<p align="center">
+  <sub>Made by CodePawl, an independent 3D studio in Vietnam.</sub>
+  <br>
+  <sub>
+    <a href="https://codepawl.com">Website</a> ·
+    <a href="https://x.com/codepawl">X</a> ·
+    <a href="https://github.com/codepawl">GitHub</a> ·
+    <a href="https://huggingface.co/codepawl">Hugging Face</a> ·
+    <a href="https://www.youtube.com/@codepawlhq">YouTube</a> ·
+    <a href="https://www.threads.com/@codepawl">Threads</a>
+  </sub>
+</p>
